@@ -48,8 +48,8 @@ and fetch pieces according to the streams you create.
 ## How can I help?
 
 1. Open issues on things that are broken
-3. Fix open issues by sending PRs
-2. Help making the documentation better
+2. Fix open issues by sending PRs
+3. Add documentation
 
 ## License
 
