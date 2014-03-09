@@ -1,13 +1,12 @@
 # peerflix-engine
 
-The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) uses
+The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) (will) use
 
 	npm install peerflix-engine
 
 ## Usage
 
-peerflix-engine is a node module that allows you to use files inside a torrent
-as node streams.
+peerflix-engine is a node module that allows you to access files inside a torrent as node streams.
 
 ``` js
 var pe = require('peerflix-engine');
