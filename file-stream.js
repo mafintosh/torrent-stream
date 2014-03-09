@@ -39,7 +39,7 @@ FileStream.prototype.notify = function() {
 	var self = this;
 	this._engine.read(this._piece++, function(err, buffer) {
 		if (self._destroyed || !self._reading) return;
-		if (err) return this.destroy(err);
+		if (err) return self.destroy(err);
 
 		if (self._offset) {
 			buffer = buffer.slice(self._offset);
