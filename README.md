@@ -4,6 +4,10 @@ The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerfl
 
 	npm install peerflix-engine
 
+## Disclamer
+
+This module is under heavy development. Here be dragons
+
 ## Usage
 
 peerflix-engine is a node module that allows you to access files inside a torrent as node streams.
@@ -40,6 +44,12 @@ file.select(); // file will be downloaded at a lower prio than any existing stre
 
 When you start peerflix-engine it will connect to the torrent dht
 and fetch pieces according to the streams you create.
+
+## How can I help?
+
+1. Open issues on things that are broken
+3. Fix open issues by sending PRs
+2. Help making the documentation better
 
 ## License
 
