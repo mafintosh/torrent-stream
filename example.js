@@ -5,11 +5,15 @@ var fs = require('fs');
 var pe = require('./index');
 
 var client = pe(fs.readFileSync('./torrents/star-wreck.torrent'), {
-	path: '/tmp/torrent-stream'
+	path: '/tmp/peerflix'
 });
 
 client.on('verify', function(index) {
 	console.log('verified', index);
+});
+
+client.on('upload', function(index) {
+	console.log('uploaded', index);
 });
 
 client.on('download', function(index) {
