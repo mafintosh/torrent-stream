@@ -80,6 +80,8 @@ var engine = function(torrent, opts) {
 		pieces[index] = null;
 		bits.set(index, true);
 
+		for (var i = 0; i < swarm.wires.length; i++) swarm.wires[i].have(index);
+
 		that.emit('verify', index);
 		that.emit('download', index, buffer);
 
@@ -124,15 +126,29 @@ var engine = function(torrent, opts) {
 		return true;
 	};
 
+	var onvalidatewire = function(wire) {
+		if (wire.requests.length) return;
+
+		for (var i = selection.length-1; i >= 0; i--) {
+			var next = selection[i];
+			for (var j = next.to; j >= next.from + next.offset; j--) {
+				if (!wire.peerPieces[j]) continue;
+				if (onrequest(wire, j)) return;
+			}
+		}
+	};
+
 	var onupdatewire = function(wire) {
 		if (wire.peerChoking) return;
 		if (wire.requests.length >= 5) return;
 
-		for (var j = 0; j < selection.length; j++) {
-			var next = selection[j];
-			for (var i = next.from + next.offset; i <= next.to; i++) {
-				if (!wire.peerPieces[i]) continue;
-				while (wire.requests.length < 5 && onrequest(wire, i));
+		if (!wire.downloaded) return onvalidatewire(wire);
+
+		for (var i = 0; i < selection.length; i++) {
+			var next = selection[i];
+			for (var j = next.from + next.offset; j <= next.to; j++) {
+				if (!wire.peerPieces[j]) continue;
+				while (wire.requests.length < 5 && onrequest(wire, j));
 				if (wire.requests.length >= 5) return;
 			}
 		}
@@ -150,6 +166,15 @@ var engine = function(torrent, opts) {
 
 		wire.bitfield(bits);
 		wire.unchoke();
+
+		wire.on('request', function(index, offset, length, cb) {
+			if (pieces[index]) return;
+			store.read(index, function(err, buffer) {
+				if (err) return cb(err);
+				that.emit('upload', index, offset, length);
+				cb(null, buffer.slice(offset, length));
+			});
+		});
 
 		wire.on('unchoke', onupdate);
 		wire.on('bitfield', onupdate);
