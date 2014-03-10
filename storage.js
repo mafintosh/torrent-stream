@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var mkdirp = require('mkdirp');
+var rimraf = require('rimraf');
 var thunky = require('thunky');
 var events = require('events');
 
@@ -29,6 +30,14 @@ module.exports = function(folder, torrent) {
 		mkdir(function(err) {
 			if (err) return cb(err);
 			fs.writeFile(path.join(folder, pad(index)), buffer, cb);
+		});
+	};
+
+	that.destroy = function(cb) {
+		if (!cb) cb = noop;
+		mkdir(function(err) {
+			if (err) return cb(err);
+			rimraf(folder, cb);
 		});
 	};
 
