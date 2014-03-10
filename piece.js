@@ -5,12 +5,15 @@ var PieceBuffer = function(length) {
 	this.parts = Math.ceil(length / BLOCK_SIZE);
 	this.remainder = (length % BLOCK_SIZE) || BLOCK_SIZE;
 	this.length = length;
+	this.missing = length;
 	this.buffered = 0;
 	this.buffer = null;
 	this.cancellations = null;
 	this.reservations = 0;
 	this.flushed = false;
 };
+
+PieceBuffer.BLOCK_SIZE = BLOCK_SIZE;
 
 PieceBuffer.prototype.size = function(i) {
 	return i === this.parts-1 ? this.remainder : BLOCK_SIZE;
@@ -42,6 +45,7 @@ PieceBuffer.prototype.set = function(i, data) {
 	if (!this.buffer[i]) {
 		this.buffered++;
 		this.buffer[i] = data;
+		this.missing -= data.length;
 	}
 	return this.buffered === this.parts;
 };
