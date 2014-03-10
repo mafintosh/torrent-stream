@@ -45,7 +45,7 @@ var bufferify = function(store) {
 
 var engine = function(torrent, opts) {
 	if (!opts) opts = {};
-	if (!opts.path) opts.path = path.join(os.tmpDir(), 'torrent-stream');
+	if (!opts.path) opts.path = path.join(opts.tmp || os.tmpDir(), 'peerflix', torrent.infoHash);
 	if (!opts.id) opts.id = '-PF0007-'+hat(48);
 
 	var that = new events.EventEmitter();
@@ -137,6 +137,11 @@ var engine = function(torrent, opts) {
 		}
 
 		that.emit('hotswap', min, wire, index);
+		return true;
+	};
+
+	var onupdatetick = function() {
+		process.nextTick(onupdate);
 	};
 
 	var onrequest = function(wire, index) {
@@ -159,27 +164,27 @@ var engine = function(torrent, opts) {
 		wire.request(index, offset, size, function(err, block) {
 			if (r[i] === wire) r[i] = null;
 
-			if (p !== pieces[index]) return onupdate();
+			if (p !== pieces[index]) return onupdatetick();
 
 			if (err) {
 				p.cancel(reservation);
-				onupdate();
+				onupdatetick();
 				return;
 			}
 
-			if (!p.set(reservation, block)) return onupdate();
+			if (!p.set(reservation, block)) return onupdatetick();
 
 			var buffer = p.flush();
 
 			if (!verify(index, buffer)) {
 				pieces[index] = piece(p.length);
 				that.emit('invalid-piece', index, buffer);
-				onupdate();
+				onupdatetick();
 				return;
 			}
 
 			onpiececomplete(index, buffer);
-			onupdate();
+			onupdatetick();
 		});
 
 		return true;
@@ -254,25 +259,27 @@ var engine = function(torrent, opts) {
 		});
 
 		wire.bitfield(bits);
-		wire.unchoke();
+		wire.interested();
 
 		var timeout = 5000;
 		var id;
 
-		var destroy = function() {
+		var onchoketimeout = function() {
 			wire.destroy();
 		};
 
-		var onchoke = function() {
-			id = setTimeout(destroy, timeout);
-		};
-
-		var onunchoke = function() {
+		wire.on('close', function() {
 			clearTimeout(id);
-		};
+		});
 
-		wire.on('choke', onchoke);
-		wire.on('unchoke', onunchoke);
+		wire.on('choke', function() {
+			clearTimeout(id);
+			id = setTimeout(onchoketimeout, timeout);
+		});
+
+		wire.on('unchoke', function() {
+			clearTimeout(id);
+		});
 
 		wire.on('request', function(index, offset, length, cb) {
 			if (pieces[index]) return;
@@ -287,6 +294,11 @@ var engine = function(torrent, opts) {
 		wire.on('bitfield', onupdate);
 		wire.on('have', onupdate);
 
+		wire.once('interested', function() {
+			wire.unchoke();
+		});
+
+		id = setTimeout(onchoketimeout, timeout);
 		that.emit('wire', wire);
 	});
 
@@ -303,8 +315,8 @@ var engine = function(torrent, opts) {
 		swarm.remove(addr);
 	};
 
-	that.critical = function(piece) {
-		critical[piece] = true;
+	that.critical = function(piece, width) {
+		for (var i = 0; i < (width || 1); i++) critical[piece+i] = true;
 	};
 
 	that.select = function(from, to, priority, notify) {
