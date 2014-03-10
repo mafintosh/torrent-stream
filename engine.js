@@ -11,6 +11,10 @@ var storage = require('./storage');
 
 var noop = function() {};
 
+var thruthy = function() {
+	return true;
+};
+
 var toNumber = function(val) {
 	return val === true ? 1 : (val || 0);
 };
@@ -44,6 +48,7 @@ var engine = function(torrent, opts) {
 	var swarm = peerWireSwarm(torrent.infoHash, opts.id, opts);
 	var store = bufferify(opts.storage || storage(opts.path));
 
+	var wires = swarm.wires;
 	var pieceLength = torrent.pieceLength;
 	var pieceRemainder = (torrent.length % pieceLength) || pieceLength;
 
@@ -80,7 +85,7 @@ var engine = function(torrent, opts) {
 		pieces[index] = null;
 		bits.set(index, true);
 
-		for (var i = 0; i < swarm.wires.length; i++) swarm.wires[i].have(index);
+		for (var i = 0; i < wires.length; i++) wires[i].have(index);
 
 		that.emit('verify', index);
 		that.emit('download', index, buffer);
@@ -138,16 +143,45 @@ var engine = function(torrent, opts) {
 		}
 	};
 
+	var speedRanker = function(wire) {
+		var speed = wire.downloadSpeed() || 1;
+		if (speed > piece.BLOCK_SIZE) return thruthy;
+
+		var secs = 5 * piece.BLOCK_SIZE / speed;
+		var tries = 5;
+		var ptr = 0;
+
+		return function(index) {
+			if (!tries || !pieces[index]) return true;
+
+			var missing = pieces[index].missing;
+			for (; ptr < wires.length; ptr++) {
+				var other = wires[ptr];
+				var speed = other.downloadSpeed();
+
+				if (speed < piece.BLOCK_SIZE || !other.peerPieces[index]) continue;
+				if (missing -= speed * secs > 0) continue;
+
+				tries--;
+				return false;
+			}
+
+			return true;
+		};
+	};
+
 	var onupdatewire = function(wire) {
 		if (wire.peerChoking) return;
 		if (wire.requests.length >= 5) return;
 
 		if (!wire.downloaded) return onvalidatewire(wire);
 
+		var rank = speedRanker(wire);
+
 		for (var i = 0; i < selection.length; i++) {
 			var next = selection[i];
 			for (var j = next.from + next.offset; j <= next.to; j++) {
-				if (!wire.peerPieces[j]) continue;
+				if (!wire.peerPieces[j] || !rank(j)) continue;
 				while (wire.requests.length < 5 && onrequest(wire, j));
 				if (wire.requests.length >= 5) return;
 			}
@@ -155,7 +189,7 @@ var engine = function(torrent, opts) {
 	};
 
 	var onupdate = function() {
-		swarm.wires.forEach(onupdatewire);
+		wires.forEach(onupdatewire);
 	};
 
 	swarm.on('wire', function(wire) {
@@ -185,7 +219,7 @@ var engine = function(torrent, opts) {
 
 	that.torrent = torrent;
 	that.selection = selection;
-	that.wires = swarm.wires;
+	that.wires = wires;
 	that.store = store;
 
 	that.connect = function(addr) {
@@ -233,6 +267,12 @@ var engine = function(torrent, opts) {
 	that.read = function(i, cb) {
 		store.read(i, cb);
 	};
+
+	that.__defineGetter__('pieces', function() {
+		return pieces.map(function(piece) {
+			return !piece;
+		});
+	});
 
 	that.verified = function(i) {
 		return !pieces[i];
