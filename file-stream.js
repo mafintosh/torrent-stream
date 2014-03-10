@@ -15,12 +15,13 @@ var FileStream = function(engine, file, opts) {
 	this.length = opts.end - opts.start + 1;
 	this.startPiece = (offset / pieceLength) | 0;
 	this.endPiece = ((opts.end + file.offset) / pieceLength) | 0;
-
 	this._destroyed = false;
 	this._engine = engine;
 	this._piece = this.startPiece;
 	this._missing = this.length;
 	this._reading = false;
+	this._notifying = false;
+	this._critical = Math.min(1024 * 1024 / pieceLength, 2) | 0;
 	this._offset = offset - this.startPiece * pieceLength;
 };
 
@@ -33,12 +34,18 @@ FileStream.prototype._read = function() {
 };
 
 FileStream.prototype.notify = function() {
-	if (!this._reading) return;
-	if (!this._engine.verified(this._piece)) return this._engine.critical(this._piece);
+	if (!this._reading || !this._missing) return;
+	if (!this._engine.verified(this._piece)) return this._engine.critical(this._piece, this._critical);
 
 	var self = this;
+
+	if (this._notifying) return;
+	this._notifying = true;
 	this._engine.read(this._piece++, function(err, buffer) {
+		self._notifying = false;
+
 		if (self._destroyed || !self._reading) return;
+
 		if (err) return self.destroy(err);
 
 		if (self._offset) {
