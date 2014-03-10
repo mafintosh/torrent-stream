@@ -193,13 +193,31 @@ var engine = function(torrent, opts) {
 	};
 
 	swarm.on('wire', function(wire) {
-		wire.setTimeout(opts.timeout || 5000, function() {
+		wire.setTimeout(opts.timeout || 10000, function() {
 			that.emit('timeout', wire);
 			wire.destroy();
 		});
 
 		wire.bitfield(bits);
 		wire.unchoke();
+
+		var timeout = 5000;
+		var id;
+
+		var destroy = function() {
+			wire.destroy();
+		};
+
+		var onchoke = function() {
+			id = setTimeout(destroy, timeout);
+		};
+
+		var onunchoke = function() {
+			clearTimeout(id);
+		};
+
+		wire.on('choke', onchoke);
+		wire.on('unchoke', onunchoke);
 
 		wire.on('request', function(index, offset, length, cb) {
 			if (pieces[index]) return;
