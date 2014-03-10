@@ -40,6 +40,11 @@ var bufferify = function(store) {
 		store.read(index, cb);
 	};
 
+	that.destroy = function(cb) {
+		if (!store.destroy) return cb();
+		store.destroy(cb);
+	};
+
 	return that;
 };
 
@@ -388,6 +393,16 @@ var engine = function(torrent, opts) {
 		};
 
 		loop(0);
+	};
+
+	that.listen = function(port, cb) {
+		if (typeof port === 'function') return that.listen(0, port);
+		swarm.listen(port || 6881, cb);
+	};
+
+	that.destroy = function(cb) {
+		swarm.destroy();
+		store.destroy(cb);
 	};
 
 	return that;
