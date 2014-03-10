@@ -123,6 +123,7 @@ var engine = function(torrent, opts) {
 			if (!other || other === wire) continue;
 
 			var otherSpeed = other.downloadSpeed();
+			if (otherSpeed >= 3 * piece.BLOCK_SIZE) continue;
 			if (2 * otherSpeed > speed || otherSpeed > minSpeed) continue;
 
 			min = other;
@@ -209,10 +210,10 @@ var engine = function(torrent, opts) {
 
 	var speedRanker = function(wire) {
 		var speed = wire.downloadSpeed() || 1;
-		if (speed > piece.BLOCK_SIZE) return thruthy;
+		if (speed > 3 * piece.BLOCK_SIZE) return thruthy;
 
 		var secs = 5 * piece.BLOCK_SIZE / speed;
-		var tries = 5;
+		var tries = 10;
 		var ptr = 0;
 
 		return function(index) {
@@ -221,10 +222,10 @@ var engine = function(torrent, opts) {
 			var missing = pieces[index].missing;
 			for (; ptr < wires.length; ptr++) {
 				var other = wires[ptr];
-				var speed = other.downloadSpeed();
+				var otherSpeed = other.downloadSpeed();
 
-				if (speed < piece.BLOCK_SIZE || !other.peerPieces[index]) continue;
-				if (missing -= speed * secs > 0) continue;
+				if (otherSpeed < speed || !other.peerPieces[index]) continue;
+				if (missing -= otherSpeed * secs > 0) continue;
 
 				tries--;
 				return false;
