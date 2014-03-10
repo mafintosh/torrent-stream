@@ -15,6 +15,10 @@ var thruthy = function() {
 	return true;
 };
 
+var falsy = function() {
+	return false;
+};
+
 var toNumber = function(val) {
 	return val === true ? 1 : (val || 0);
 };
@@ -57,6 +61,10 @@ var engine = function(torrent, opts) {
 		return piece(i === torrent.pieces.length-1 ? pieceRemainder : pieceLength);
 	});
 
+	var reservations = torrent.pieces.map(function() {
+		return [];
+	});
+
 	var selection = [];
 	var critical = [];
 
@@ -83,6 +91,8 @@ var engine = function(torrent, opts) {
 
 	var onpiececomplete = function(index, buffer) {
 		pieces[index] = null;
+		reservations[index] = null;
+
 		bits.set(index, true);
 
 		for (var i = 0; i < wires.length; i++) wires[i].have(index);
@@ -94,17 +104,61 @@ var engine = function(torrent, opts) {
 		gc();
 	};
 
+	var onhotswap = opts.hotswap === false ? falsy : function(wire, index) {
+		var speed = wire.downloadSpeed();
+		if (speed < piece.BLOCK_SIZE) return;
+		if (!reservations[index] || !pieces[index]) return;
+
+		var r = reservations[index];
+		var minSpeed = Infinity;
+		var min;
+
+		for (var i = 0; i < r.length; i++) {
+			var other = r[i];
+			if (!other || other === wire) continue;
+
+			var otherSpeed = other.downloadSpeed();
+			if (2 * otherSpeed > speed || otherSpeed > minSpeed) continue;
+
+			min = other;
+			minSpeed = otherSpeed;
+		}
+
+		if (!min) return false;
+
+		for (var i = 0; i < r.length; i++) {
+			if (r[i] === min) r[i] = null;
+		}
+
+		for (var i = 0; i < min.requests.length; i++) {
+			var req = min.requests[i];
+			if (req.piece !== index) continue;
+			pieces[index].cancel((req.offset / piece.BLOCK_SIZE) | 0);
+		}
+
+		that.emit('hotswap', min, wire, index);
+	};
+
 	var onrequest = function(wire, index) {
 		if (!pieces[index]) return false;
 
 		var p = pieces[index];
 		var reservation = p.reserve();
+
+		if (reservation === -1 && critical[index] && onhotswap(wire, index)) reservation = p.reserve();
 		if (reservation === -1) return false;
 
+		var r = reservations[index] || [];
 		var offset = p.offset(reservation);
 		var size = p.size(reservation);
 
+		var i = r.indexOf(null);
+		if (i === -1) i = r.length;
+		r[i] = wire;
+
 		wire.request(index, offset, size, function(err, block) {
+			if (r[i] === wire) r[i] = null;
+
 			if (p !== pieces[index]) return onupdate();
 
 			if (err) {
@@ -182,6 +236,7 @@ var engine = function(torrent, opts) {
 			var next = selection[i];
 			for (var j = next.from + next.offset; j <= next.to; j++) {
 				if (!wire.peerPieces[j] || !rank(j)) continue;
+
 				while (wire.requests.length < 5 && onrequest(wire, j));
 				if (wire.requests.length >= 5) return;
 			}
