@@ -9,7 +9,7 @@
     "mkdirp": "^0.3.5",
     "rimraf": "^2.2.5",
     "parse-torrent": "^0.6.0",
-    "peer-wire-swarm": "^0.5.2",
+    "peer-wire-swarm": "^0.6.0",
     "hat": "0.0.3",
     "end-of-stream": "^0.1.4",
     "bncode": "^0.5.2",
