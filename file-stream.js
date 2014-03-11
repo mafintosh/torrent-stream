@@ -35,13 +35,13 @@ FileStream.prototype._read = function() {
 
 FileStream.prototype.notify = function() {
 	if (!this._reading || !this._missing) return;
-	if (!this._engine.verified(this._piece)) return this._engine.critical(this._piece, this._critical);
+	if (!this._engine.bitfield.get(this._piece)) return this._engine.critical(this._piece, this._critical);
 
 	var self = this;
 
 	if (this._notifying) return;
 	this._notifying = true;
-	this._engine.read(this._piece++, function(err, buffer) {
+	this._engine.store.read(this._piece++, function(err, buffer) {
 		self._notifying = false;
 
 		if (self._destroyed || !self._reading) return;
