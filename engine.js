@@ -271,7 +271,8 @@ var engine = function(torrent, opts) {
 		var id;
 
 		var onchoketimeout = function() {
-			wire.destroy();
+			if (swarm.queued > 2 * swarm.size - swarm.wires.length) wire.destroy();
+			id = setTimeout(onchoketimeout, timeout);
 		};
 
 		wire.on('close', function() {
