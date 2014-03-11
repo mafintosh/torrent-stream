@@ -55,7 +55,7 @@ var engine = function(torrent, opts) {
 
 	var that = new events.EventEmitter();
 	var swarm = peerWireSwarm(torrent.infoHash, opts.id, opts);
-	var store = bufferify(opts.storage || storage(opts.path));
+	var store = bufferify(opts.storage || storage(opts.path, torrent));
 
 	var wires = swarm.wires;
 	var pieceLength = torrent.pieceLength;
@@ -95,9 +95,10 @@ var engine = function(torrent, opts) {
 	};
 
 	var onpiececomplete = function(index, buffer) {
+		if (!pieces[index]) return;
+
 		pieces[index] = null;
 		reservations[index] = null;
-
 		bits.set(index, true);
 
 		for (var i = 0; i < wires.length; i++) wires[i].have(index);
@@ -150,13 +151,13 @@ var engine = function(torrent, opts) {
 		process.nextTick(onupdate);
 	};
 
-	var onrequest = function(wire, index) {
+	var onrequest = function(wire, index, hotswap) {
 		if (!pieces[index]) return false;
 
 		var p = pieces[index];
 		var reservation = p.reserve();
 
-		if (reservation === -1 && critical[index] && onhotswap(wire, index)) reservation = p.reserve();
+		if (reservation === -1 && hotswap && onhotswap(wire, index)) reservation = p.reserve();
 		if (reservation === -1) return false;
 
 		var r = reservations[index] || [];
@@ -203,7 +204,7 @@ var engine = function(torrent, opts) {
 			var next = selection[i];
 			for (var j = next.to; j >= next.from + next.offset; j--) {
 				if (!wire.peerPieces[j]) continue;
-				if (onrequest(wire, j)) return;
+				if (onrequest(wire, j, false)) return;
 			}
 		}
 	};
@@ -235,11 +236,8 @@ var engine = function(torrent, opts) {
 		};
 	};
 
-	var onupdatewire = function(wire) {
-		if (wire.peerChoking) return;
-		if (wire.requests.length >= 5) return;
-
-		if (!wire.downloaded) return onvalidatewire(wire);
+	var select = function(wire, hotswap) {
+		if (wire.requests.length >= 5) return true;
 
 		var rank = speedRanker(wire);
 
@@ -247,11 +245,18 @@ var engine = function(torrent, opts) {
 			var next = selection[i];
 			for (var j = next.from + next.offset; j <= next.to; j++) {
 				if (!wire.peerPieces[j] || !rank(j)) continue;
-
-				while (wire.requests.length < 5 && onrequest(wire, j));
-				if (wire.requests.length >= 5) return;
+				while (wire.requests.length < 5 && onrequest(wire, j, critical[j] || hotswap));
+				if (wire.requests.length >= 5) return true;
 			}
 		}
+
+		return false;
+	};
+
+	var onupdatewire = function(wire) {
+		if (wire.peerChoking) return;
+		if (!wire.downloaded) return onvalidatewire(wire);
+		select(wire, false) || select(wire, true);
 	};
 
 	var onupdate = function() {
@@ -271,7 +276,7 @@ var engine = function(torrent, opts) {
 		var id;
 
 		var onchoketimeout = function() {
-			if (swarm.queued > 2 * swarm.size - swarm.wires.length) wire.destroy();
+			if (swarm.queued > 2 * (swarm.size - swarm.wires.length)) return wire.destroy();
 			id = setTimeout(onchoketimeout, timeout);
 		};
 
@@ -356,19 +361,7 @@ var engine = function(torrent, opts) {
 		onupdate();
 	};
 
-	that.read = function(i, cb) {
-		store.read(i, cb);
-	};
-
-	that.__defineGetter__('pieces', function() {
-		return pieces.map(function(piece) {
-			return !piece;
-		});
-	});
-
-	that.verified = function(i) {
-		return !pieces[i];
-	};
+	that.bitfield = bits;
 
 	that.verify = function(cb) {
 		swarm.pause();
@@ -385,6 +378,8 @@ var engine = function(torrent, opts) {
 			store.read(i, function(err, buffer) {
 				if (!buffer) return loop(i+1);
 				if (!verify(i, buffer)) return loop(i+1);
+
+				if (!pieces[i]) return loop(i+1);
 
 				pieces[i] = null;
 				bits.set(i, true);
