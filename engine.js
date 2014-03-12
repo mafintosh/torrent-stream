@@ -92,6 +92,8 @@ var engine = function(torrent, opts) {
 			i--; // -1 to offset splice
 			s.notify();
 		}
+
+		if (!selection.length) that.emit('idle');
 	};
 
 	var onpiececomplete = function(index, buffer) {
