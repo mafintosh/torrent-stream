@@ -316,7 +316,7 @@ var engine = function(torrent, opts) {
 
 	that.torrent = torrent;
 	that.selection = selection;
-	that.wires = wires;
+	that.swarm = swarm;
 	that.store = store;
 
 	that.connect = function(addr) {
