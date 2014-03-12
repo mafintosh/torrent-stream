@@ -81,10 +81,6 @@ Listen for incoming peers on the specified port. Port defaults to `6881`
 
 The attached [peer-wire-swarm](https:/github.com/mafintosh/peer-wire-swarm) instance
 
-#### `engine.wires`
-
-An array of all [peer-wire-protocols](https:/github.com/mafintosh/peer-wire-protocol) that are currently connected
-
 #### `file = engine.files[...]`
 
 A file in the torrent. They contains the following data
