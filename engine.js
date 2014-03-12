@@ -266,7 +266,7 @@ var engine = function(torrent, opts) {
 	};
 
 	swarm.on('wire', function(wire) {
-		wire.setTimeout(opts.timeout || 10000, function() {
+		wire.setTimeout(opts.timeout || 30000, function() {
 			that.emit('timeout', wire);
 			wire.destroy();
 		});
