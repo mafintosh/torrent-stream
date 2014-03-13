@@ -326,6 +326,8 @@ var engine = function(torrent, opts) {
 	that.swarm = swarm;
 	that.store = store;
 
+	swarm.pause();
+
 	that.connect = function(addr) {
 		swarm.add(addr);
 	};
@@ -351,6 +353,7 @@ var engine = function(torrent, opts) {
 			return b.priority - a.priority;
 		});
 
+		if (selection.length === 1) swarm.resume();
 		process.nextTick(gc);
 		onupdate();
 	};
@@ -365,16 +368,14 @@ var engine = function(torrent, opts) {
 			break;
 		}
 
+		if (!selection.length) swarm.pause();
 		onupdate();
 	};
 
 	that.bitfield = bits;
 
 	that.verify = function(cb) {
-		swarm.pause();
-
 		var done = function() {
-			swarm.resume();
 			gc();
 			if (cb) cb();
 		};
