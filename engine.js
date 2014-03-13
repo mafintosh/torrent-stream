@@ -9,6 +9,11 @@ var os = require('os');
 var piece = require('./piece');
 var storage = require('./storage');
 
+var MAX_REQUESTS = 5;
+var CHOKE_TIMEOUT = 5000;
+var REQUEST_TIMEOUT = 30000;
+var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
+
 var noop = function() {};
 
 var thruthy = function() {
@@ -126,7 +131,7 @@ var engine = function(torrent, opts) {
 			if (!other || other === wire) continue;
 
 			var otherSpeed = other.downloadSpeed();
-			if (otherSpeed >= 3 * piece.BLOCK_SIZE) continue;
+			if (otherSpeed >= SPEED_THRESHOLD) continue;
 			if (2 * otherSpeed > speed || otherSpeed > minSpeed) continue;
 
 			min = other;
@@ -213,9 +218,9 @@ var engine = function(torrent, opts) {
 
 	var speedRanker = function(wire) {
 		var speed = wire.downloadSpeed() || 1;
-		if (speed > 3 * piece.BLOCK_SIZE) return thruthy;
+		if (speed > SPEED_THRESHOLD) return thruthy;
 
-		var secs = 5 * piece.BLOCK_SIZE / speed;
+		var secs = MAX_REQUESTS * piece.BLOCK_SIZE / speed;
 		var tries = 10;
 		var ptr = 0;
 
@@ -239,7 +244,7 @@ var engine = function(torrent, opts) {
 	};
 
 	var select = function(wire, hotswap) {
-		if (wire.requests.length >= 5) return true;
+		if (wire.requests.length >= MAX_REQUESTS) return true;
 
 		var rank = speedRanker(wire);
 
@@ -247,8 +252,8 @@ var engine = function(torrent, opts) {
 			var next = selection[i];
 			for (var j = next.from + next.offset; j <= next.to; j++) {
 				if (!wire.peerPieces[j] || !rank(j)) continue;
-				while (wire.requests.length < 5 && onrequest(wire, j, critical[j] || hotswap));
-				if (wire.requests.length >= 5) return true;
+				while (wire.requests.length < MAX_REQUESTS && onrequest(wire, j, critical[j] || hotswap));
+				if (wire.requests.length >= MAX_REQUESTS) return true;
 			}
 		}
 
@@ -266,7 +271,7 @@ var engine = function(torrent, opts) {
 	};
 
 	swarm.on('wire', function(wire) {
-		wire.setTimeout(opts.timeout || 30000, function() {
+		wire.setTimeout(opts.timeout || REQUEST_TIMEOUT, function() {
 			that.emit('timeout', wire);
 			wire.destroy();
 		});
@@ -274,7 +279,7 @@ var engine = function(torrent, opts) {
 		wire.bitfield(bits);
 		wire.interested();
 
-		var timeout = 5000;
+		var timeout = CHOKE_TIMEOUT;
 		var id;
 
 		var onchoketimeout = function() {
