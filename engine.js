@@ -313,7 +313,7 @@ var engine = function(torrent, opts) {
 			store.read(index, function(err, buffer) {
 				if (err) return cb(err);
 				that.emit('upload', index, offset, length);
-				cb(null, buffer.slice(offset, length));
+				cb(null, buffer.slice(offset, offset+length));
 			});
 		});
 
