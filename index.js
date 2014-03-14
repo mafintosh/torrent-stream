@@ -8,11 +8,6 @@ module.exports = function(torrent, opts) {
 	torrent = parseTorrent(torrent);
 
 	var e = engine(torrent, opts);
-	var table = dht(torrent.infoHash);
-
-	table.on('peer', function(addr) {
-		e.connect(addr);
-	});
 
 	e.files = torrent.files.map(function(file) {
 		var offsetPiece = (file.offset / torrent.pieceLength) | 0;
@@ -39,6 +34,14 @@ module.exports = function(torrent, opts) {
 		};
 
 		return file;
+	});
+
+	if (opts.dht === false) return e;
+
+	var table = dht(torrent.infoHash);
+
+	table.on('peer', function(addr) {
+		e.connect(addr);
 	});
 
 	return e;

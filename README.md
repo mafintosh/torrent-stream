@@ -55,8 +55,10 @@ Create a new engine instance. Options can contain the following
 
 ``` js
 {
-	size: 100,           // Max amount of peers to be connected to.
-	path: '/tmp/my-file' // Where to save the buffer data.
+	size: 100,            // Max amount of peers to be connected to.
+	path: '/tmp/my-file', // Where to save the buffer data.
+	dht: true             // Whether or to use the dht to find peers.
+	                      // Defaults to true
 }
 ```
 
