@@ -59,7 +59,7 @@ var engine = function(torrent, opts) {
 	if (!opts.id) opts.id = '-PF0007-'+hat(48);
 
 	var that = new events.EventEmitter();
-	var swarm = peerWireSwarm(torrent.infoHash, opts.id, opts);
+	var swarm = peerWireSwarm(torrent.infoHash, opts.id, {size:opts.connections || opts.size});
 	var store = bufferify(opts.storage || storage(opts.path, torrent));
 
 	var wires = swarm.wires;
