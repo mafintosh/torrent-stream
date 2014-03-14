@@ -1,12 +1,8 @@
 # peerflix-engine
 
-The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) (will) use
+The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) uses
 
 	npm install peerflix-engine
-
-## Disclamer
-
-This module is under heavy development. Here be dragons
 
 ## How can I help?
 
