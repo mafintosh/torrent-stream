@@ -5,7 +5,7 @@ var parseTorrent = require('parse-torrent');
 var eos = require('end-of-stream');
 
 module.exports = function(torrent, opts) {
-	torrent = parseTorrent(torrent);
+	torrent = !Buffer.isBuffer(torrent) && typeof torrent === 'object' ? torrent : parseTorrent(torrent);
 
 	var e = engine(torrent, opts);
 
