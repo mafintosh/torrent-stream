@@ -82,6 +82,13 @@ var engine = function(torrent, opts) {
 		return crypto.createHash('sha1').update(buffer).digest('hex') === torrent.pieces[index];
 	};
 
+	var oninterestchange = function() {
+		wires.forEach(function(wire) {
+			if (selection.length) wire.interested();
+			else wire.uninterested();
+		});
+	};
+
 	var gc = function() {
 		for (var i = 0; i < selection.length; i++) {
 			var s = selection[i];
@@ -96,6 +103,7 @@ var engine = function(torrent, opts) {
 			selection.splice(i, 1);
 			i--; // -1 to offset splice
 			s.notify();
+			oninterestchange();
 		}
 
 		if (!selection.length) that.emit('idle');
@@ -277,13 +285,13 @@ var engine = function(torrent, opts) {
 		});
 
 		wire.bitfield(bits);
-		wire.interested();
+		if (selection.length) wire.interested();
 
 		var timeout = CHOKE_TIMEOUT;
 		var id;
 
 		var onchoketimeout = function() {
-			if (swarm.queued > 2 * (swarm.size - swarm.wires.length)) return wire.destroy();
+			if (swarm.queued > 2 * (swarm.size - swarm.wires.length) && wire.amInterested) return wire.destroy();
 			id = setTimeout(onchoketimeout, timeout);
 		};
 
@@ -326,8 +334,6 @@ var engine = function(torrent, opts) {
 	that.swarm = swarm;
 	that.store = store;
 
-	swarm.pause();
-
 	that.connect = function(addr) {
 		swarm.add(addr);
 	};
@@ -353,8 +359,8 @@ var engine = function(torrent, opts) {
 			return b.priority - a.priority;
 		});
 
-		if (selection.length === 1) swarm.resume();
 		process.nextTick(gc);
+		oninterestchange();
 		onupdate();
 	};
 
@@ -368,7 +374,7 @@ var engine = function(torrent, opts) {
 			break;
 		}
 
-		if (!selection.length) swarm.pause();
+		oninterestchange();
 		onupdate();
 	};
 
