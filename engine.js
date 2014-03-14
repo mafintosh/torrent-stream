@@ -78,15 +78,24 @@ var engine = function(torrent, opts) {
 	var selection = [];
 	var critical = [];
 
+	that.amInterested = false;
+
 	var verify = function(index, buffer) {
 		return crypto.createHash('sha1').update(buffer).digest('hex') === torrent.pieces[index];
 	};
 
 	var oninterestchange = function() {
+		var prev = that.amInterested;
+		that.amInterested = !!selection.length;
+
 		wires.forEach(function(wire) {
-			if (selection.length) wire.interested();
+			if (that.amInterested) wire.interested();
 			else wire.uninterested();
 		});
+
+		if (prev === that.amInterested) return;
+		if (that.amInterested) that.emit('interested');
+		else that.emit('uninterested');
 	};
 
 	var gc = function() {
