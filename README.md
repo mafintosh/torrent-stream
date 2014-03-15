@@ -77,7 +77,7 @@ Listen for incoming peers on the specified port. Port defaults to `6881`
 
 #### `engine.swarm`
 
-The attached [peer-wire-swarm](https:/github.com/mafintosh/peer-wire-swarm) instance
+The attached [peer-wire-swarm](https://github.com/mafintosh/peer-wire-swarm) instance
 
 #### `file = engine.files[...]`
 
