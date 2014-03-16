@@ -1,8 +1,8 @@
 {
-  "name": "peerflix-engine",
+  "name": "torrent-stream",
   "version": "0.2.3",
   "description": "Low level streaming torrent client that exposes files as node.js streams and downloads pieces based on demand",
-  "repository": "git://github.com/mafintosh/peerflix-engine.git",
+  "repository": "git://github.com/mafintosh/torrent-stream.git",
   "dependencies": {
     "bitfield": "^0.1.0",
     "thunky": "^0.1.0",

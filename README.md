@@ -1,8 +1,8 @@
-# peerflix-engine
+# torrent-stream
 
 The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) uses
 
-	npm install peerflix-engine
+	npm install torrent-stream
 
 ## How can I help?
 
@@ -12,13 +12,13 @@ The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerfl
 
 ## Usage
 
-peerflix-engine is a node module that allows you to access files inside a torrent as node streams.
+torrent-stream is a node module that allows you to access files inside a torrent as node streams.
 
 ``` js
-var peerflixEngine = require('peerflix-engine');
+var torrentStream = require('torrent-stream');
 var fs = require('fs');
 
-var engine = peerflixEngine(fs.readFileSync('my-test-file.torrent'));
+var engine = torrentStream(fs.readFileSync('my-test-file.torrent'));
 
 engine.files.forEach(function(file) {
 	console.log('filename:', file.name);
@@ -40,12 +40,12 @@ var stream = file.createReadStream({
 Per default no files are downloaded unless you create a stream to them.
 If you want to fetch a file anyway use the `file.select` and `file.deselect` method.
 
-When you start peerflix-engine it will connect to the torrent dht
+When you start torrent-stream it will connect to the torrent dht
 and fetch pieces according to the streams you create.
 
 ## Full API
 
-#### `engine = peerflixEngine(opts)`
+#### `engine = torrentStream(opts)`
 
 Create a new engine instance. Options can contain the following
 
