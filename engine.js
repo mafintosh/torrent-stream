@@ -66,7 +66,7 @@ var engine = function(torrent, opts) {
 	var that = new events.EventEmitter();
 	var swarm = peerWireSwarm(torrent.infoHash, opts.id, {
 		size: opts.connections || opts.size,
-		handshake_options: {
+		handshake: {
 			extension_protocol: true
 		}
 	});
