@@ -18,12 +18,14 @@ torrent-stream is a node module that allows you to access files inside a torrent
 var torrentStream = require('torrent-stream');
 var fs = require('fs');
 
-var engine = torrentStream(fs.readFileSync('my-test-file.torrent'));
+var engine = torrentStream('magnet:my-magnet-link');
 
-engine.files.forEach(function(file) {
-	console.log('filename:', file.name);
-	var stream = file.createReadStream();
-	// stream is readable stream to containing the file content
+engine.on('ready', function() {
+	engine.files.forEach(function(file) {
+		console.log('filename:', file.name);
+		var stream = file.createReadStream();
+		// stream is readable stream to containing the file content
+	});
 });
 ```
 
@@ -45,23 +47,32 @@ and fetch pieces according to the streams you create.
 
 ## Full API
 
-#### `engine = torrentStream(opts)`
+#### `engine = torrentStream(magnet_link_or_buffer, opts)`
 
 Create a new engine instance. Options can contain the following
 
 ``` js
 {
-	connections: 100,      // Max amount of peers to be connected to.
+	connections: 100,     // Max amount of peers to be connected to.
 	path: '/tmp/my-file', // Where to save the buffer data.
+	verify: true,         // Verify previously stored data before starting
 	dht: true             // Whether or to use the dht to find peers.
 	                      // Defaults to true
 }
 ```
 
-#### `engine.verify(cb)`
+#### `engine.on('ready', fn)`
 
-Verify the currently saved data before starting the swarm.
-You should call this as the first method if you want to persist data.
+Emitted when the engine is ready to be used.
+The files array will be empty until this event is emitted
+
+#### `engine.on('download', [piece-index])`
+
+Emitted everytime a piece has been downloaded and verified.
+
+#### `engine.on('upload', [piece-index, offset, length])`
+
+Emitted everytime a piece is uploaded.
 
 #### `engine.files[...]`
 
