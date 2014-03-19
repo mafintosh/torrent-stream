@@ -78,9 +78,13 @@ Emitted everytime a piece is uploaded.
 
 An array of all files in the torrent. See the file section for more info on what methods the file has
 
-#### `engine.destroy(cb)`
+#### `engine.destroy()`
 
-Destroy the engine (including the saved data) completely. The callback is optional
+Destroy the engine. Destroys all connections to peers
+
+#### `engine.remove(cb)`
+
+Completely remove all saved data for this torrent
 
 #### `engine.listen([port], cb)`
 
