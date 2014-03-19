@@ -51,7 +51,7 @@ var torrentStream = function(link, opts) {
 	var infoHash = link.infoHash;
 
 	if (!opts) opts = {};
-	if (!opts.id) opts.id = '-PF0007-'+hat(48);
+	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.path) opts.path = path.join(opts.tmp || '/tmp', 'torrent-stream', infoHash);
 
 	var engine = new events.EventEmitter();
