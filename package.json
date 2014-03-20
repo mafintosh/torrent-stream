@@ -14,6 +14,7 @@
     "bncode": "^0.5.2",
     "compact2string": "^1.2.0",
     "random-access-file": "^0.3.1",
-    "magnet-uri": "^1.1.0"
+    "magnet-uri": "^1.1.0",
+    "ip": "^0.3.0"
   }
 }
