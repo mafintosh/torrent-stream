@@ -58,7 +58,7 @@ var torrentStream = function(link, opts) {
 
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
-	if (!opts.path) opts.path = path.join(opts.tmp || '/tmp', 'torrent-stream', infoHash);
+	if (!opts.path) opts.path = path.join(opts.tmp || '/tmp', opts.name || 'torrent-stream', infoHash);
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
@@ -68,7 +68,6 @@ var torrentStream = function(link, opts) {
 	var critical = [];
 	var metadataPieces = [];
 	var metadata = null;
-	var store = null;
 	var refresh = noop;
 
 	engine.files = [];
@@ -76,6 +75,7 @@ var torrentStream = function(link, opts) {
 	engine.torrent = null;
 	engine.bitfield = null;
 	engine.amInterested = false;
+	engine.store = null;
 	engine.swarm = swarm;
 
 	if (opts.dht !== false) {
@@ -88,8 +88,7 @@ var torrentStream = function(link, opts) {
 	}
 
 	var ontorrent = function(torrent) {
-		store = storage(opts.path, torrent);
-
+		engine.store = storage(opts.path, torrent);
 		engine.torrent = torrent;
 		engine.bitfield = bitfield(torrent.pieces.length);
 
@@ -176,7 +175,7 @@ var torrentStream = function(link, opts) {
 			engine.emit('verify', index);
 			engine.emit('download', index, buffer);
 
-			store.write(index, buffer);
+			engine.store.write(index, buffer);
 			gc();
 		};
 
@@ -364,7 +363,7 @@ var torrentStream = function(link, opts) {
 
 			wire.on('request', function(index, offset, length, cb) {
 				if (pieces[index]) return;
-				store.read(index, function(err, buffer) {
+				engine.store.read(index, function(err, buffer) {
 					if (err) return cb(err);
 					engine.emit('upload', index, offset, length);
 					cb(null, buffer.slice(offset, offset+length));
@@ -402,7 +401,7 @@ var torrentStream = function(link, opts) {
 
 		var loop = function(i) {
 			if (i >= torrent.pieces.length) return onready();
-			store.read(i, function(_, buf) {
+			engine.store.read(i, function(_, buf) {
 				if (!buf || sha1(buf) !== torrent.pieces[i] || !pieces[i]) return loop(i+1);
 				pieces[i] = null;
 				engine.bitfield.set(i, true);
@@ -557,7 +556,7 @@ var torrentStream = function(link, opts) {
 	engine.destroy = function() {
 		swarm.destroy();
 		if (engine.dht) engine.dht.destroy();
-		if (store) store.destroy();
+		if (engine.store) engine.store.destroy();
 	};
 
 	engine.listen = function(port, cb) {
