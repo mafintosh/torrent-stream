@@ -11,6 +11,7 @@ var events = require('events');
 var path = require('path');
 var fs = require('fs');
 var eos = require('end-of-stream');
+var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
@@ -20,7 +21,9 @@ var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
-var META_BLOCK_SIZE = 1 << 14;
+
+var METADATA_BLOCK_SIZE = 1 << 14;
+var METADATA_MAX_SIZE = 1 << 22;
 
 var EXTENSIONS = {
 	m: {
@@ -56,6 +59,7 @@ var torrentStream = function(link, opts) {
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
+	var torrentPath = path.join(opts.path, 'cache.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
@@ -395,7 +399,7 @@ var torrentStream = function(link, opts) {
 
 		var loop = function(i) {
 			if (i >= torrent.pieces.length) return onready();
-			store.read(i, function(err, buf) {
+			store.read(i, function(_, buf) {
 				if (!buf || sha1(buf) !== torrent.pieces[i] || !pieces[i]) return loop(i+1);
 				pieces[i] = null;
 				engine.bitfield.set(i, true);
@@ -407,35 +411,6 @@ var torrentStream = function(link, opts) {
 		loop(0);
 	};
 
-	var onmetadata = function(buf, size) {
-		var delimiter = buf.toString('ascii').indexOf('ee')+2;
-		var message = bncode.decode(buf.slice(0, delimiter));
-
-		if (message.msg_type === 2) return;
-
-		if (message.msg_type === 1 && !metadata) {
-			metadataPieces[message.piece] = buf.slice(delimiter);
-			for (var i = 0; i * META_BLOCK_SIZE < size; i++) {
-				if (!metadataPieces[i]) return;
-			}
-
-			metadata = Buffer.concat(metadataPieces);
-
-			if (infoHash !== sha1(metadata)) {
-				metadataPieces = [];
-				metadata = null;
-				return;
-			}
-
-			var result = {};
-			result.info = bncode.decode(metadata);
-			result['announce-list'] = [];
-
-			var torrent = parseTorrent(bncode.encode(result));
-
-			ontorrent(torrent);
-		}
-	};
 
 	swarm.on('wire', function(wire) {
 		engine.emit('wire', wire);
@@ -445,31 +420,82 @@ var torrentStream = function(link, opts) {
 
 			if (id || !handshake.m || handshake.m.ut_metadata === undefined) return;
 
-			var mt = handshake.m.ut_metadata;
+			var channel = handshake.m.ut_metadata;
 			var size = handshake.metadata_size;
 
 			wire.on('extended', function(id, ext) {
-				if (id === EXTENSIONS.m.ut_metadata) onmetadata(ext, size);
+				if (id !== EXTENSIONS.m.ut_metadata) return;
+
+				try {
+					var delimiter = ext.toString('ascii').indexOf('ee');
+					var message = bncode.decode(ext.slice(0, delimiter === -1 ? ext.length : delimiter+2));
+					var piece = message.piece;
+				} catch (err) {
+					return;
+				}
+
+				if (!(piece >= 0)) return;
+				if (message.msg_type === 2) return;
+
+				if (message.msg_type === 0) {
+					if (!metadata) return wire.extended(channel, {msg_type:2, piece:piece});
+					var offset = piece * METADATA_BLOCK_SIZE;
+					var buf = metadata.slice(offset, offset + METADATA_BLOCK_SIZE);
+					wire.extended(channel, Buffer.concat([bncode.encode({msg_type:1, piece:piece}), buf]));
+					return;
+				}
+
+				if (message.msg_type === 1 && !metadata) {
+					metadataPieces[piece] = ext.slice(delimiter+2);
+					for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
+						if (!metadataPieces[i]) return;
+					}
+
+					metadata = Buffer.concat(metadataPieces);
+
+					if (infoHash !== sha1(metadata)) {
+						metadataPieces = [];
+						metadata = null;
+						return;
+					}
+
+					var result = {};
+					result.info = bncode.decode(metadata);
+					result['announce-list'] = [];
+
+					var buf = bncode.encode(result);
+					fs.writeFile(torrentPath, buf, function() {
+						ontorrent(parseTorrent(buf));
+					});
+					return;
+				}
 			});
 
+			if (size > METADATA_MAX_SIZE) return;
 			if (!size || metadata) return;
 
-			for (var i = 0; i * META_BLOCK_SIZE < size; i++) {
+			for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
 				if (metadataPieces[i]) continue;
-				wire.extended(mt, {msg_type:0, piece:i});
+				wire.extended(channel, {msg_type:0, piece:i});
 			}
 		});
 
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
 		if (!wire.peerExtensions.extended) return;
 
-		wire.extended(0, {m:{ut_metadata:1}});
+		wire.extended(0, metadata ? {m:{ut_metadata:1}, metadata_size:metadata.length} : {m:{ut_metadata:1}});
 	});
 
 	swarm.pause();
 	mkdirp(opts.path, function(err) {
 		if (err) return engine.emit('error', err);
-		swarm.resume();
+		fs.readFile(torrentPath, function(_, buf) {
+			swarm.resume();
+			if (!buf) return;
+			var torrent = parseTorrent(buf);
+			metadata = encode(torrent);
+			if (metadata) ontorrent(torrent);
+		});
 	});
 
 	engine.critical = function(piece, width) {
