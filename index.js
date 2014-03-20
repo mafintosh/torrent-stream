@@ -50,7 +50,10 @@ var toNumber = function(val) {
 };
 
 var torrentStream = function(link, opts) {
-	link = magnet(link);
+	link = typeof link === 'string' ? magnet(link) : Buffer.isBuffer(link) ? parseTorrent(link) : link;
+
+	if (!link || !link.infoHash) throw new Error('You must pass a valid torrent or magnet link');
+
 	var infoHash = link.infoHash;
 
 	if (!opts) opts = {};
@@ -489,6 +492,14 @@ var torrentStream = function(link, opts) {
 	swarm.pause();
 	mkdirp(opts.path, function(err) {
 		if (err) return engine.emit('error', err);
+
+		if (link.files) {
+			metadata = encode(link);
+			swarm.resume();
+			if (metadata) ontorrent(link);
+			return;
+		}
+
 		fs.readFile(torrentPath, function(_, buf) {
 			swarm.resume();
 			if (!buf) return;
