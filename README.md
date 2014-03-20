@@ -82,6 +82,14 @@ An array of all files in the torrent. See the file section for more info on what
 
 Destroy the engine. Destroys all connections to peers
 
+#### `engine.connect('127.0.0.0:6881')`
+
+Connect to a peer manually
+
+#### `engine.disconnect('127.0.0.1:6881')`
+
+Disconnect from a peer manually
+
 #### `engine.remove(cb)`
 
 Completely remove all saved data for this torrent
