@@ -11,6 +11,7 @@ var events = require('events');
 var path = require('path');
 var fs = require('fs');
 var eos = require('end-of-stream');
+var ip = require('ip');
 var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
@@ -49,6 +50,23 @@ var toNumber = function(val) {
 	return val === true ? 1 : (val || 0);
 };
 
+var isPeerBlocked = function(addr, blocklist) {
+	var blockedReason = null;
+	// TODO: support IPv6
+	var searchAddr = ip.toLong(addr);
+	for (var i = 0, l = blocklist.length; i < l; i++) {
+		var block = blocklist[i];
+		if (!block.startAddress || !block.endAddress) continue;
+		var startAddress = ip.toLong(block.startAddress);
+		var endAddress = ip.toLong(block.endAddress);
+		if (searchAddr >= startAddress && searchAddr <= endAddress) {
+			blockedReason = block.reason || true;
+			break;
+		}
+	}
+	return blockedReason;
+};
+
 var torrentStream = function(link, opts) {
 	link = typeof link === 'string' ? magnet(link) : Buffer.isBuffer(link) ? parseTorrent(link) : link;
 
@@ -59,6 +77,7 @@ var torrentStream = function(link, opts) {
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.path) opts.path = path.join(opts.tmp || '/tmp', opts.name || 'torrent-stream', infoHash);
+	if (!opts.blocklist) opts.blocklist = [];
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
@@ -82,8 +101,13 @@ var torrentStream = function(link, opts) {
 		var table = dht(infoHash);
 		engine.dht = table;
 		table.on('peer', function(addr) {
-			engine.emit('peer', addr);
-			engine.connect(addr);
+			var blockedReason = null;
+			if (opts.blocklist.length && (blockedReason = isPeerBlocked(addr, opts.blocklist))) {
+				engine.emit('blocked-peer', addr, blockedReason);
+			} else {
+				engine.emit('peer', addr);
+				engine.connect(addr);
+			}
 		});
 	}
 
