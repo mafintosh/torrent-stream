@@ -5,7 +5,6 @@
   "repository": "git://github.com/mafintosh/torrent-stream.git",
   "dependencies": {
     "bitfield": "^0.1.0",
-    "thunky": "^0.1.0",
     "mkdirp": "^0.3.5",
     "rimraf": "^2.2.5",
     "parse-torrent": "^0.6.0",
@@ -14,6 +13,7 @@
     "end-of-stream": "^0.1.4",
     "bncode": "^0.5.2",
     "compact2string": "^1.2.0",
-    "random-access-file": "^0.3.1"
+    "random-access-file": "^0.3.1",
+    "magnet-uri": "^1.1.0"
   }
 }
