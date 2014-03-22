@@ -53,10 +53,11 @@ module.exports = function(folder, torrent) {
 
 		var i = 0;
 		var loop = function(err) {
+			if (i >= files.length) return cb();
 			if (err) return cb(err);
 			var next = files[i++];
-			if (!next) return cb();
-			file.close(loop);
+			if (!next) return process.nextTick(loop);
+			next.close(loop);
 		};
 
 		loop();

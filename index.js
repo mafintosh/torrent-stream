@@ -89,6 +89,7 @@ var torrentStream = function(link, opts) {
 	var metadata = null;
 	var refresh = noop;
 
+	engine.path = opts.path;
 	engine.files = [];
 	engine.selection = [];
 	engine.torrent = null;
@@ -574,13 +575,13 @@ var torrentStream = function(link, opts) {
 	};
 
 	engine.remove = function(cb) {
-		rimraf(opts.path, cb);
+		rimraf(engine.path, cb || noop);
 	};
 
 	engine.destroy = function() {
 		swarm.destroy();
 		if (engine.dht) engine.dht.destroy();
-		if (engine.store) engine.store.destroy();
+		if (engine.store) engine.store.close();
 	};
 
 	engine.listen = function(port, cb) {
