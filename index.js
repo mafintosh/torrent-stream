@@ -10,6 +10,7 @@ var rimraf = require('rimraf');
 var events = require('events');
 var path = require('path');
 var fs = require('fs');
+var os = require('os');
 var eos = require('end-of-stream');
 var ip = require('ip');
 var dht = require('bittorrent-dht');
@@ -25,6 +26,7 @@ var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 
 var METADATA_BLOCK_SIZE = 1 << 14;
 var METADATA_MAX_SIZE = 1 << 22;
+var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
 
 var EXTENSIONS = {
 	m: {
@@ -76,7 +78,7 @@ var torrentStream = function(link, opts) {
 
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
-	if (!opts.path) opts.path = path.join(opts.tmp || '/tmp', opts.name || 'torrent-stream', infoHash);
+	if (!opts.path) opts.path = path.join(opts.tmp || TMP, opts.name || 'torrent-stream', infoHash);
 	if (!opts.blocklist) opts.blocklist = [];
 
 	var engine = new events.EventEmitter();
