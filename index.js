@@ -104,6 +104,7 @@ var torrentStream = function(link, opts) {
 		var table = dht();
 		engine.dht = table;
 		table.setInfoHash(infoHash);
+		if (table.socket) table.socket.on('error', noop);
 		table.on('peer', function(addr) {
 			var blockedReason = null;
 			if (opts.blocklist.length && (blockedReason = isPeerBlocked(addr, opts.blocklist))) {
