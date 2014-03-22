@@ -1,0 +1,47 @@
+var test = require('tap').test;
+var torrents = require('../');
+var fs = require('fs');
+
+var fixture = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e');
+
+fixture.listen(10000);
+
+var engine = function() {
+	var e = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e', {
+		dht: false
+	});
+
+	e.connect('127.0.0.1:10000');
+	return e;
+};
+
+test('fixture can connect to the dht', function(t) {
+	t.plan(1);
+	fixture.on('ready', function() {
+		t.ok(true);
+	});
+});
+
+test('destroy engine after ready', function(t) {
+	t.plan(1);
+	var e = engine();
+	e.on('ready', function() {
+		e.destroy();
+		t.ok(true);
+	});
+});
+
+test('destroy engine right away', function(t) {
+	t.plan(1);
+	var e = engine();
+	e.destroy();
+	t.ok(true);
+});
+
+test('remove fixture and all content', function(t) {
+	t.plan(1);
+	fixture.destroy();
+	fixture.remove(function() {
+		t.ok(!fs.existsSync(fixture.path));
+	});
+});
