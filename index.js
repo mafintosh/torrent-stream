@@ -12,11 +12,11 @@ var path = require('path');
 var fs = require('fs');
 var eos = require('end-of-stream');
 var ip = require('ip');
+var dht = require('bittorrent-dht');
 var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
-var dht = require('./dht');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
@@ -99,8 +99,9 @@ var torrentStream = function(link, opts) {
 	engine.swarm = swarm;
 
 	if (opts.dht !== false) {
-		var table = dht(infoHash);
+		var table = dht();
 		engine.dht = table;
+		table.setInfoHash(infoHash);
 		table.on('peer', function(addr) {
 			var blockedReason = null;
 			if (opts.blocklist.length && (blockedReason = isPeerBlocked(addr, opts.blocklist))) {
@@ -110,6 +111,7 @@ var torrentStream = function(link, opts) {
 				engine.connect(addr);
 			}
 		});
+		table.findPeers(10000); // TODO: be smarter about finding peers
 	}
 
 	var ontorrent = function(torrent) {
@@ -580,7 +582,7 @@ var torrentStream = function(link, opts) {
 
 	engine.destroy = function() {
 		swarm.destroy();
-		if (engine.dht) engine.dht.destroy();
+		if (engine.dht) engine.dht.close();
 		if (engine.store) engine.store.close();
 	};
 
