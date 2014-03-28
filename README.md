@@ -56,7 +56,10 @@ Create a new engine instance. Options can contain the following
 	connections: 100,     // Max amount of peers to be connected to.
 	path: '/tmp/my-file', // Where to save the buffer data.
 	verify: true,         // Verify previously stored data before starting
-	dht: true             // Whether or to use the dht to find peers.
+	                      // Defaults to true
+	dht: true             // Whether or not to use the dht to find peers.
+	                      // Defaults to true
+	tracker: true         // Whether or not to use a tracker
 	                      // Defaults to true
 }
 ```
