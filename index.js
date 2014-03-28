@@ -14,6 +14,7 @@ var os = require('os');
 var eos = require('end-of-stream');
 var ip = require('ip');
 var dht = require('bittorrent-dht');
+var tracker = require('bittorrent-tracker');
 var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
@@ -23,6 +24,7 @@ var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
+var DEFAULT_PORT = 6881;
 
 var METADATA_BLOCK_SIZE = 1 << 14;
 var METADATA_MAX_SIZE = 1 << 22;
@@ -131,6 +133,18 @@ var torrentStream = function(link, opts) {
 		var reservations = torrent.pieces.map(function() {
 			return [];
 		});
+
+		if (opts.tracker !== false) {
+			var tr = engine.tracker = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
+
+			tr.on('peer', function(addr) {
+				engine.connect(addr);
+			});
+
+			tr.on('error', noop);
+
+			tr.start();
+		}
 
 		torrent.files.forEach(function(file) {
 			var offsetPiece = (file.offset / torrent.pieceLength) | 0;
@@ -585,13 +599,15 @@ var torrentStream = function(link, opts) {
 
 	engine.destroy = function() {
 		swarm.destroy();
+		if (engine.tracker) engine.tracker.stop();
 		if (engine.dht) engine.dht.close();
 		if (engine.store) engine.store.close();
 	};
 
 	engine.listen = function(port, cb) {
 		if (typeof port === 'function') return that.listen(0, port);
-		swarm.listen(port || 6881, cb);
+		engine.port = port || DEFAULT_PORT;
+		swarm.listen(engine.port, cb);
 	};
 
 	return engine;
