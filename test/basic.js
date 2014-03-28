@@ -2,13 +2,16 @@ var test = require('tap').test;
 var torrents = require('../');
 var fs = require('fs');
 
-var fixture = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e');
+var fixture = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e', {
+	tracker: false
+});
 
 fixture.listen(10000);
 
 var engine = function() {
 	var e = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e', {
-		dht: false
+		dht: false,
+		tracker: false
 	});
 
 	e.connect('127.0.0.1:10000');
