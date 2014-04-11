@@ -60,7 +60,7 @@ module.exports = function(folder, torrent) {
 			next.close(loop);
 		};
 
-		loop();
+		process.nextTick(loop);
 	};
 
 	return that;

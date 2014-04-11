@@ -597,11 +597,15 @@ var torrentStream = function(link, opts) {
 		rimraf(engine.path, cb || noop);
 	};
 
-	engine.destroy = function() {
+	engine.destroy = function(cb) {
 		swarm.destroy();
 		if (engine.tracker) engine.tracker.stop();
 		if (engine.dht) engine.dht.close();
-		if (engine.store) engine.store.close();
+		if (engine.store) {
+			engine.store.close(cb);
+		} else if (cb) {
+			process.nextTick(cb);
+		}
 	};
 
 	engine.listen = function(port, cb) {

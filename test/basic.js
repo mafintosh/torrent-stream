@@ -20,25 +20,21 @@ var engine = function() {
 
 test('fixture can connect to the dht', function(t) {
 	t.plan(1);
-	fixture.on('ready', function() {
-		t.ok(true);
-	});
+	fixture.on('ready', t.ok.bind(t, true, 'should be ready'));
 });
 
 test('destroy engine after ready', function(t) {
 	t.plan(1);
 	var e = engine();
 	e.on('ready', function() {
-		e.destroy();
-		t.ok(true);
+		e.destroy(t.ok.bind(t, true, 'should be destroyed'));
 	});
 });
 
 test('destroy engine right away', function(t) {
 	t.plan(1);
 	var e = engine();
-	e.destroy();
-	t.ok(true);
+	e.destroy(t.ok.bind(t, true, 'should be destroyed'));
 });
 
 test('remove fixture and all content', function(t) {
