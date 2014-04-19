@@ -25,6 +25,7 @@ var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
+var DHT_SIZE = 10000;
 
 var METADATA_BLOCK_SIZE = 1 << 14;
 var METADATA_MAX_SIZE = 1 << 22;
@@ -116,7 +117,7 @@ var torrentStream = function(link, opts) {
 				engine.connect(addr);
 			}
 		});
-		table.findPeers(10000); // TODO: be smarter about finding peers
+		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
 	}
 
 	var ontorrent = function(torrent) {
