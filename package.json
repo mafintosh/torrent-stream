@@ -20,7 +20,7 @@
     "magnet-uri": "^1.1.0",
     "ip": "^0.3.0",
     "bittorrent-dht": "^0.5.0",
-    "bittorrent-tracker": "^0.4.0"
+    "bittorrent-tracker": "^0.4.1"
   },
   "devDependencies": {
     "tap": "^0.4.8"
