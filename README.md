@@ -57,8 +57,8 @@ Create a new engine instance. Options can contain the following
 	path: '/tmp/my-file', // Where to save the buffer data.
 	verify: true,         // Verify previously stored data before starting
 	                      // Defaults to true
-	dht: 10000,           // Use DHT to initialize the swarm.
-	                      // Defaults to 10000 peers, set false to disable
+	dht: true,            // Whether or not to use the dht to find peers.
+	                      // Defaults to true
 	tracker: true         // Whether or not to use a tracker
 	                      // Defaults to true
 }
