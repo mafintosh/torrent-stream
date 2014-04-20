@@ -4,7 +4,7 @@ var raf = require('random-access-file');
 
 var noop = function() {};
 
-module.exports = function(folder, torrent) {
+module.exports = function(folder, torrent, targetFile) {
 	var that = {};
 
 	var bufferSize = torrent.pieceLength;
@@ -15,6 +15,8 @@ module.exports = function(folder, torrent) {
 	var piecesPerBuffer = bufferSize / pieceLength;
 	var mem = [];
 	var files = [];
+
+	if (targetFile) targetFile = raf(targetFile);
 
 	var pad = function(i) {
 		return '00000000000'.slice(0, 10-(''+i).length)+i;

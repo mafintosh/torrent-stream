@@ -121,7 +121,6 @@ var torrentStream = function(link, opts) {
 	}
 
 	var ontorrent = function(torrent) {
-		engine.store = storage(opts.path, torrent);
 		engine.torrent = torrent;
 		engine.bitfield = bitfield(torrent.pieces.length);
 
@@ -173,6 +172,9 @@ var torrentStream = function(link, opts) {
 
 			engine.files.push(file);
 		});
+
+		var targetFile = opts.path + '/' + engine.files[0].name;
+		engine.store = storage(opts.path, torrent, targetFile);
 
 		var oninterestchange = function() {
 			var prev = engine.amInterested;
