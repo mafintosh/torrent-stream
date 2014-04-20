@@ -28,7 +28,7 @@ module.exports = function(folder, torrent, targetFile) {
 		var i = (index / piecesPerBuffer) | 0;
 		var offset = index - i * piecesPerBuffer;
 		var len = index === torrent.pieces.length-1 ? pieceRemainder : pieceLength;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
+		var file = targetFile || files[i] || raf(path.join(folder, pad(i)));
 
 		file.read(offset * pieceLength, len, cb);
 	};
@@ -44,7 +44,7 @@ module.exports = function(folder, torrent, targetFile) {
 		};
 
 		var i = (index / piecesPerBuffer) | 0;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
+		var file = targetFile || files[i] || raf(path.join(folder, pad(i)));
 		var offset = index - i * piecesPerBuffer;
 
 		file.write(offset * pieceLength, buffer, ondone);
