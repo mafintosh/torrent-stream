@@ -19,7 +19,7 @@
     "random-access-file": "^0.3.1",
     "magnet-uri": "^1.1.0",
     "ip": "^0.3.0",
-    "bittorrent-dht": "^0.5.0",
+    "bittorrent-dht": "^0.7.0",
     "bittorrent-tracker": "^0.4.1"
   },
   "devDependencies": {
