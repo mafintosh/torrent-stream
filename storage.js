@@ -4,7 +4,7 @@ var raf = require('random-access-file');
 
 var noop = function() {};
 
-module.exports = function(folder, torrent) {
+module.exports = function(folder, torrent, targetFile) {
 	var that = {};
 
 	var bufferSize = torrent.pieceLength;
@@ -16,6 +16,8 @@ module.exports = function(folder, torrent) {
 	var mem = [];
 	var files = [];
 
+	if (targetFile) targetFile = raf(targetFile);
+
 	var pad = function(i) {
 		return '00000000000'.slice(0, 10-(''+i).length)+i;
 	};
@@ -26,7 +28,7 @@ module.exports = function(folder, torrent) {
 		var i = (index / piecesPerBuffer) | 0;
 		var offset = index - i * piecesPerBuffer;
 		var len = index === torrent.pieces.length-1 ? pieceRemainder : pieceLength;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
+		var file = targetFile || files[i] || raf(path.join(folder, pad(i)));
 
 		file.read(offset * pieceLength, len, cb);
 	};
@@ -42,7 +44,7 @@ module.exports = function(folder, torrent) {
 		};
 
 		var i = (index / piecesPerBuffer) | 0;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
+		var file = targetFile || files[i] || raf(path.join(folder, pad(i)));
 		var offset = index - i * piecesPerBuffer;
 
 		file.write(offset * pieceLength, buffer, ondone);
