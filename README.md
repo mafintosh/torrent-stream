@@ -4,13 +4,13 @@ The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerfl
 
 	npm install torrent-stream
 
-## How can I help?
+### How can I help?
 
 1. Open issues on things that are broken
 2. Fix open issues by sending PRs
 3. Add documentation
 
-## Usage
+### Usage
 
 torrent-stream is a node module that allows you to access files inside a torrent as node streams.
 
@@ -45,9 +45,9 @@ If you want to fetch a file without creating a stream you should use the `file.s
 When you start torrent-stream it will connect to the torrent dht
 and fetch pieces according to the streams you create.
 
-## Full API
+### Full API
 
-#### `engine = torrentStream(magnet_link_or_buffer, opts)`
+#### `engine = torrentStream(magnet_link_or_buffer, options)`
 
 Create a new engine instance. Options can contain the following
 
@@ -140,6 +140,6 @@ Options can contain the following
 
 Both `start` and `end` are inclusive
 
-## License
+### License
 
 MIT
