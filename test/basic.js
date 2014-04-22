@@ -37,10 +37,13 @@ test('destroy engine right away', function(t) {
 	e.destroy(t.ok.bind(t, true, 'should be destroyed'));
 });
 
+
 test('remove fixture and all content', function(t) {
 	t.plan(1);
-	fixture.destroy();
-	fixture.remove(function() {
-		t.ok(!fs.existsSync(fixture.path));
-	});
+	fixture.on('init', function() {
+		fixture.destroy();
+		fixture.remove(function() {
+			t.ok(!fs.existsSync(fixture._torrentPath));
+		});
+	})
 });
