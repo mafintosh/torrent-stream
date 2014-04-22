@@ -1,1 +1,1 @@
-module.exports = require('./lib/TorrentStream');
+module.exports = require('./lib/TorrentStream.js');
