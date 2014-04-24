@@ -350,6 +350,16 @@ var torrentStream = function(link, opts) {
 			};
 		};
 
+		var shufflePriority = function(i) {
+			var last = i;
+			for (var j = i; j < engine.selection.length && engine.selection[j].priority; j++) {
+				last = j;
+			}
+			var tmp = engine.selection[i];
+			engine.selection[i] = engine.selection[last];
+			engine.selection[last] = tmp;
+		};
+
 		var select = function(wire, hotswap) {
 			if (wire.requests.length >= MAX_REQUESTS) return true;
 
@@ -360,7 +370,9 @@ var torrentStream = function(link, opts) {
 				for (var j = next.from + next.offset; j <= next.to; j++) {
 					if (!wire.peerPieces[j] || !rank(j)) continue;
 					while (wire.requests.length < MAX_REQUESTS && onrequest(wire, j, critical[j] || hotswap));
-					if (wire.requests.length >= MAX_REQUESTS) return true;
+					if (wire.requests.length < MAX_REQUESTS) continue;
+					if (next.priority) shufflePriority(i);
+					return true;
 				}
 			}
 
