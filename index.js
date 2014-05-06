@@ -327,8 +327,7 @@ var torrentStream = function(link, opts) {
 			var speed = wire.downloadSpeed() || 1;
 			if (speed > SPEED_THRESHOLD) return thruthy;
 
-			// we +1 here be on the safe side. rather buffer to much than to little
-			var secs = (1+MAX_REQUESTS) * piece.BLOCK_SIZE / speed;
+			var secs = MAX_REQUESTS * piece.BLOCK_SIZE / speed;
 			var tries = 10;
 			var ptr = 0;
 
@@ -340,7 +339,8 @@ var torrentStream = function(link, opts) {
 					var other = wires[ptr];
 					var otherSpeed = other.downloadSpeed();
 
-					if (otherSpeed < speed || !other.peerPieces[index]) continue;
+					if (otherSpeed < SPEED_THRESHOLD) continue;
+					if (otherSpeed <= speed || !other.peerPieces[index]) continue;
 					if ((missing -= otherSpeed * secs) > 0) continue;
 
 					tries--;
