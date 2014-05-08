@@ -84,7 +84,7 @@ module.exports = function(folder, torrent) {
 		var next = function(err) {
 			if (err) return cb(err);
 			if (i >= end) {
-				delete mem[index];
+				mem[index] = null;
 				return cb(err);
 			}
 
