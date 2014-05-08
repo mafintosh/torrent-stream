@@ -1,34 +1,76 @@
 var fs = require('fs');
 var path = require('path');
 var raf = require('random-access-file');
+var mkdirp = require('mkdirp');
 
 var noop = function() {};
 
 module.exports = function(folder, torrent) {
 	var that = {};
 
-	var bufferSize = torrent.pieceLength;
-	while (bufferSize < 256 * 1024 * 1024) bufferSize *= 2;
-
+	var piecesMap = [];
 	var pieceLength = torrent.pieceLength;
-	var pieceRemainder = (torrent.length % pieceLength) || pieceLength;
-	var piecesPerBuffer = bufferSize / pieceLength;
+
+	torrent.files.forEach(function(file, idx) {
+		var fileStart = file.offset;
+		var fileEnd   = file.offset + file.length;
+
+		var firstPiece = Math.floor(fileStart / pieceLength);
+		var lastPiece  = Math.floor((fileEnd - 1) / pieceLength);
+
+		for (var p = firstPiece; p <= lastPiece; ++p) {
+			var pieceStart = p * pieceLength;
+			var pieceEnd   = pieceStart + pieceLength;
+
+			var from   = (fileStart < pieceStart) ? 0 : fileStart - pieceStart;
+			var to     = (fileEnd > pieceEnd) ? pieceLength : fileEnd - pieceStart;
+			var offset = (fileStart > pieceStart) ? 0 : pieceStart - fileStart;
+
+			if (!piecesMap[p]) piecesMap[p] = [];
+
+			piecesMap[p].push({
+				from:    from,
+				to:      to,
+				offset:  offset,
+				file:    idx
+			});
+		}
+	});
+
 	var mem = [];
 	var files = [];
 
-	var pad = function(i) {
-		return '00000000000'.slice(0, 10-(''+i).length)+i;
+	var openFile = function(idx) {
+		var filePath = path.join(folder, torrent.files[idx].path);
+		var fileDir  = path.dirname(filePath);
+
+		// Making openFile async would require more refactoring
+		mkdirp.sync(fileDir);
+
+		return files[idx] = raf(filePath);
 	};
 
 	that.read = function(index, cb) {
 		if (mem[index]) return cb(null, mem[index]);
 
-		var i = (index / piecesPerBuffer) | 0;
-		var offset = index - i * piecesPerBuffer;
-		var len = index === torrent.pieces.length-1 ? pieceRemainder : pieceLength;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
+		var buffers = [];
 
-		file.read(offset * pieceLength, len, cb);
+		var targets = piecesMap[index];
+		var i = 0, end = targets.length;
+
+		var next = function(err, buffer) {
+			if (err) return cb(err);
+			if (buffer) buffers.push(buffer);
+			if (i >= end) {
+				return cb(err, Buffer.concat(buffers));
+			}
+
+			var target = targets[i++];
+			var file = files[target.file] || openFile(target.file);
+			file.read(target.offset, (target.to - target.from), next);
+		};
+
+		next();
 	};
 
 	that.write = function(index, buffer, cb) {
@@ -36,16 +78,22 @@ module.exports = function(folder, torrent) {
 
 		mem[index] = buffer;
 
-		var ondone = function(err) {
-			mem[index] = null;
-			cb(err);
+		var targets = piecesMap[index];
+		var i = 0, end = targets.length;
+
+		var next = function(err) {
+			if (err) return cb(err);
+			if (i >= end) {
+				mem[index] = null;
+				return cb(err);
+			}
+
+			var target = targets[i++];
+			var file = files[target.file] || openFile(target.file);
+			file.write(target.offset, buffer.slice(target.from, target.to), next);
 		};
 
-		var i = (index / piecesPerBuffer) | 0;
-		var file = files[i] = files[i] || raf(path.join(folder, pad(i)));
-		var offset = index - i * piecesPerBuffer;
-
-		file.write(offset * pieceLength, buffer, ondone);
+		next();
 	};
 
 	that.close = function(cb) {

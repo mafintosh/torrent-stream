@@ -86,7 +86,7 @@ var torrentStream = function(link, opts) {
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
-	var torrentPath = path.join(opts.path, 'cache.torrent');
+	var torrentPath = path.join(opts.path, infoHash + '.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
