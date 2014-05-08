@@ -8,19 +8,20 @@
   },
   "dependencies": {
     "bitfield": "^0.1.0",
-    "mkdirp": "^0.3.5",
-    "rimraf": "^2.2.5",
-    "parse-torrent": "^0.6.0",
-    "peer-wire-swarm": "^0.9.0",
-    "hat": "0.0.3",
-    "end-of-stream": "^0.1.4",
+    "bittorrent-dht": "^0.7.0",
+    "bittorrent-tracker": "^0.5.0",
     "bncode": "^0.5.2",
     "compact2string": "^1.2.0",
-    "random-access-file": "^0.3.1",
-    "magnet-uri": "^1.1.0",
+    "end-of-stream": "^0.1.4",
+    "hat": "0.0.3",
     "ip": "^0.3.0",
-    "bittorrent-dht": "^0.7.0",
-    "bittorrent-tracker": "^0.5.0"
+    "magnet-uri": "^1.1.0",
+    "mkdirp": "^0.3.5",
+    "parse-torrent": "^0.6.0",
+    "peer-wire-swarm": "^0.9.0",
+    "random-access-file": "^0.3.1",
+    "rimraf": "^2.2.5",
+    "thunky": "^0.1.0"
   },
   "devDependencies": {
     "tap": "^0.4.8"
