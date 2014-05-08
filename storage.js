@@ -12,19 +12,19 @@ module.exports = function(folder, torrent) {
 	var pieceLength = torrent.pieceLength;
 
 	torrent.files.forEach(function(file, idx) {
-		var file_start = file.offset;
-		var file_end   = file.offset + file.length;
+		var fileStart = file.offset;
+		var fileEnd   = file.offset + file.length;
 
-		var first_piece = Math.floor(file_start / pieceLength);
-		var last_piece  = Math.floor((file_end - 1) / pieceLength);
+		var firstPiece = Math.floor(fileStart / pieceLength);
+		var lastPiece  = Math.floor((fileEnd - 1) / pieceLength);
 
-		for (var p = first_piece; p <= last_piece; ++p) {
-			var piece_start = p * pieceLength;
-			var piece_end   = piece_start + pieceLength;
+		for (var p = firstPiece; p <= lastPiece; ++p) {
+			var pieceStart = p * pieceLength;
+			var pieceEnd   = pieceStart + pieceLength;
 
-			var from  = (file_start < piece_start) ? 0 : file_start - piece_start;
-			var to    = (file_end > piece_end) ? pieceLength : file_end - piece_start;
-			var offset = (file_start > piece_start) ? 0 : piece_start - file_start;
+			var from   = (fileStart < pieceStart) ? 0 : fileStart - pieceStart;
+			var to     = (fileEnd > pieceEnd) ? pieceLength : fileEnd - pieceStart;
+			var offset = (fileStart > pieceStart) ? 0 : pieceStart - fileStart;
 
 			if (!piecesMap[p]) piecesMap[p] = [];
 
@@ -41,13 +41,13 @@ module.exports = function(folder, torrent) {
 	var files = [];
 
 	var openFile = function(idx) {
-		var file_path = path.join(folder, torrent.files[idx].path);
-		var file_dir  = path.dirname(file_path);
+		var filePath = path.join(folder, torrent.files[idx].path);
+		var fileDir  = path.dirname(filePath);
 
 		// Making openFile async would require more refactoring
-		mkdirp.sync(file_dir);
+		mkdirp.sync(fileDir);
 
-		return files[idx] = raf(file_path);
+		return files[idx] = raf(filePath);
 	};
 
 	that.read = function(index, cb) {
