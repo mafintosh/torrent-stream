@@ -110,7 +110,9 @@ module.exports = function(folder, torrent) {
 	that.remove = function(cb) {
 		if (!torrent.files.length) return;
 		var root = torrent.files[0].path.split(path.sep)[0];
-		rimraf(path.join(folder, root), cb || noop);
+		rimraf(path.join(folder, root), function() {
+			fs.rmdir(folder, cb || noop);
+		});
 	};
 
 	that.close = function(cb) {
