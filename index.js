@@ -551,23 +551,20 @@ var torrentStream = function(link, opts) {
 	});
 
 	swarm.pause();
-	mkdirp(opts.path, function(err) {
-		if (err) return engine.emit('error', err);
 
-		if (link.files) {
-			metadata = encode(link);
-			swarm.resume();
-			if (metadata) ontorrent(link);
-			return;
-		}
+	if (link.files) {
+		metadata = encode(link);
+		swarm.resume();
+		if (metadata) ontorrent(link);
+		return;
+	}
 
-		fs.readFile(torrentPath, function(_, buf) {
-			swarm.resume();
-			if (!buf) return;
-			var torrent = parseTorrent(buf);
-			metadata = encode(torrent);
-			if (metadata) ontorrent(torrent);
-		});
+	fs.readFile(torrentPath, function(_, buf) {
+		swarm.resume();
+		if (!buf) return;
+		var torrent = parseTorrent(buf);
+		metadata = encode(torrent);
+		if (metadata) ontorrent(torrent);
 	});
 
 	engine.critical = function(piece, width) {
