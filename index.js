@@ -81,12 +81,13 @@ var torrentStream = function(link, opts) {
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
-	if (!opts.path) opts.path = path.join(opts.tmp, opts.name || 'torrent-stream', infoHash);
+	if (!opts.name) opts.name = 'torrent-stream';
+	if (!opts.path) opts.path = path.join(opts.tmp, opts.name, infoHash);
 	if (!opts.blocklist) opts.blocklist = [];
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
-	var torrentPath = path.join(opts.tmp, '.torrents', infoHash + '.torrent');
+	var torrentPath = path.join(opts.tmp, opts.name, '.torrents', infoHash + '.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
