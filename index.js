@@ -80,12 +80,13 @@ var torrentStream = function(link, opts) {
 
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
-	if (!opts.path) opts.path = path.join(opts.tmp || TMP, opts.name || 'torrent-stream', infoHash);
+	if (!opts.tmp) opts.tmp = TMP;
+	if (!opts.path) opts.path = path.join(opts.tmp, opts.name || 'torrent-stream', infoHash);
 	if (!opts.blocklist) opts.blocklist = [];
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
-	var torrentPath = path.join(opts.path, infoHash + '.torrent');
+	var torrentPath = path.join(opts.tmp, '.torrents', infoHash + '.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
@@ -523,8 +524,12 @@ var torrentStream = function(link, opts) {
 					result['announce-list'] = [];
 
 					var buf = bncode.encode(result);
-					fs.writeFile(torrentPath, buf, function() {
-						ontorrent(parseTorrent(buf));
+					mkdirp(path.dirname(torrentPath), function(err) {
+						// What to do with err here?
+						if (err) return;
+						fs.writeFile(torrentPath, buf, function() {
+							ontorrent(parseTorrent(buf));
+						});
 					});
 					return;
 				}
