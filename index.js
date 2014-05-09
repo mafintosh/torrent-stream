@@ -556,16 +556,15 @@ var torrentStream = function(link, opts) {
 		metadata = encode(link);
 		swarm.resume();
 		if (metadata) ontorrent(link);
-		return;
+	} else {
+		fs.readFile(torrentPath, function(_, buf) {
+			swarm.resume();
+			if (!buf) return;
+			var torrent = parseTorrent(buf);
+			metadata = encode(torrent);
+			if (metadata) ontorrent(torrent);
+		});
 	}
-
-	fs.readFile(torrentPath, function(_, buf) {
-		swarm.resume();
-		if (!buf) return;
-		var torrent = parseTorrent(buf);
-		metadata = encode(torrent);
-		if (metadata) ontorrent(torrent);
-	});
 
 	engine.critical = function(piece, width) {
 		for (var i = 0; i < (width || 1); i++) critical[piece+i] = true;
