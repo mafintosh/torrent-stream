@@ -525,8 +525,7 @@ var torrentStream = function(link, opts) {
 
 					var buf = bncode.encode(result);
 					mkdirp(path.dirname(torrentPath), function(err) {
-						// What to do with err here?
-						if (err) return;
+						if (err) return ontorrent(parseTorrent(buf));
 						fs.writeFile(torrentPath, buf, function() {
 							ontorrent(parseTorrent(buf));
 						});
