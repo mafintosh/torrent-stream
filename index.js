@@ -6,7 +6,6 @@ var crypto = require('crypto');
 var bitfield = require('bitfield');
 var parseTorrent = require('parse-torrent');
 var mkdirp = require('mkdirp');
-var rimraf = require('rimraf');
 var events = require('events');
 var path = require('path');
 var fs = require('fs');
@@ -608,7 +607,15 @@ var torrentStream = function(link, opts) {
 	};
 
 	engine.remove = function(cb) {
-		rimraf(engine.path, cb || noop);
+		if (!cb) cb = noop;
+		fs.unlink(torrentPath, function(err) {
+			if (err && err.code !== 'ENOENT') return cb(err);
+			if (engine.store) {
+				engine.store.remove(cb);
+			} else {
+				process.nextTick(cb);
+			}
+		});
 	};
 
 	engine.destroy = function(cb) {

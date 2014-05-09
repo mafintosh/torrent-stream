@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var raf = require('random-access-file');
 var mkdirp = require('mkdirp');
+var rimraf = require('rimraf');
 var thunky = require('thunky');
 
 var noop = function() {};
@@ -101,6 +102,29 @@ module.exports = function(folder, torrent) {
 				if (err) return cb(err);
 				file.write(target.offset, buffer.slice(target.from, target.to), next);
 			});
+		};
+
+		next();
+	};
+
+	that.remove = function(cb) {
+		if (!cb) cb = noop;
+
+		var roots = torrent.files.map(function(file) {
+			// First path component for rimram
+			return file.path.split(path.sep)[0];
+		}).filter(function(value, index, self) {
+			// Remove duplicates
+			return self.indexOf(value) === index;
+		});
+
+		var i = 0;
+		var end = roots.length;
+
+		var next = function(err) {
+			if (err) return cb(err);
+			if (i >= end) return cb(null);
+			rimraf(path.join(folder, roots[i++]), next);
 		};
 
 		next();
