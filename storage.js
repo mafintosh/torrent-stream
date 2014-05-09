@@ -109,9 +109,12 @@ module.exports = function(folder, torrent) {
 
 	that.remove = function(cb) {
 		if (!torrent.files.length) return;
+		if (!cb) cb = noop;
+
 		var root = torrent.files[0].path.split(path.sep)[0];
-		rimraf(path.join(folder, root), function() {
-			fs.rmdir(folder, cb || noop);
+		rimraf(path.join(folder, root), function(err) {
+			if (err) cb(err);
+			fs.rmdir(folder, cb);
 		});
 	};
 
