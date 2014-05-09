@@ -108,26 +108,8 @@ module.exports = function(folder, torrent) {
 	};
 
 	that.remove = function(cb) {
-		if (!cb) cb = noop;
-
-		var roots = torrent.files.map(function(file) {
-			// First path component for rimram
-			return file.path.split(path.sep)[0];
-		}).filter(function(value, index, self) {
-			// Remove duplicates
-			return self.indexOf(value) === index;
-		});
-
-		var i = 0;
-		var end = roots.length;
-
-		var next = function(err) {
-			if (err) return cb(err);
-			if (i >= end) return cb(null);
-			rimraf(path.join(folder, roots[i++]), next);
-		};
-
-		next();
+		var root = torrent.files[0].path.split(path.sep)[0];
+		rimraf(path.join(folder, root), cb || noop);
 	};
 
 	that.close = function(cb) {
