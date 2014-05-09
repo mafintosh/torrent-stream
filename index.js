@@ -526,8 +526,12 @@ var torrentStream = function(link, opts) {
 
 					var buf = bncode.encode(result);
 					mkdirp(path.dirname(torrentPath), function(err) {
-						if (err) return ontorrent(parseTorrent(buf));
-						fs.writeFile(torrentPath, buf, function() {
+						if (err) {
+							engine.emit('error', err);
+							return ontorrent(parseTorrent(buf));
+						}
+						fs.writeFile(torrentPath, buf, function(err) {
+							if (err) engine.emit('error', err);
 							ontorrent(parseTorrent(buf));
 						});
 					});
