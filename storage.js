@@ -108,8 +108,8 @@ module.exports = function(folder, torrent) {
 	};
 
 	that.remove = function(cb) {
-		if (!torrent.files.length) return;
 		if (!cb) cb = noop;
+		if (!torrent.files.length) return cb();
 
 		var root = torrent.files[0].path.split(path.sep)[0];
 		rimraf(path.join(folder, root), cb);

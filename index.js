@@ -82,8 +82,14 @@ var torrentStream = function(link, opts) {
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
 	if (!opts.name) opts.name = 'torrent-stream';
-	if (!opts.path) opts.path = path.join(opts.tmp, opts.name, infoHash);
 	if (!opts.blocklist) opts.blocklist = [];
+
+	var usingTmp = false;
+
+	if (!opts.path) {
+		usingTmp = true;
+		opts.path = path.join(opts.tmp, opts.name, infoHash);
+	}
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
@@ -611,8 +617,37 @@ var torrentStream = function(link, opts) {
 		swarm.remove(addr);
 	};
 
-	engine.remove = function(cb) {
-		engine.store.remove(cb);
+	var removeTorrent = function(cb) {
+		fs.unlink(torrentPath, function(err) {
+			if (err) return cb(err);
+			fs.rmdir(path.dirname(torrentPath), function(err) {
+				if (err && err.code !== 'ENOTEMPTY') return cb(err);
+				cb();
+			});
+		});
+	};
+
+	var removeTmp = function(cb) {
+		removeTorrent(function(err) {
+			if (err || !usingTmp) return cb(err);
+			fs.rmdir(opts.path, function(err) {
+				if (err && err.code !== 'ENOTEMPTY') return cb(err);
+				cb();
+			});
+		});
+	};
+
+	engine.remove = function(keepPieces, cb) {
+		if (typeof keepPieces === "function") {
+			cb = keepPieces;
+			keepPieces = false;
+		}
+
+		if (keepPieces) return removeTmp(cb);
+		engine.store.remove(function(err) {
+			if (err) return cb(err);
+			removeTmp(cb);
+		});
 	};
 
 	engine.destroy = function(cb) {
