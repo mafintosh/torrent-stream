@@ -85,6 +85,7 @@ var torrentStream = function(link, opts) {
 	if (!opts.blocklist) opts.blocklist = [];
 
 	var usingTmp = false;
+	var destroyed = false;
 
 	if (!opts.path) {
 		usingTmp = true;
@@ -568,6 +569,7 @@ var torrentStream = function(link, opts) {
 		if (metadata) ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
+			if (destroyed) return;
 			swarm.resume();
 			if (!buf) return;
 			var torrent = parseTorrent(buf);
@@ -643,7 +645,8 @@ var torrentStream = function(link, opts) {
 			keepPieces = false;
 		}
 
-		if (keepPieces) return removeTmp(cb);
+		if (keepPieces || !engine.store) return removeTmp(cb);
+
 		engine.store.remove(function(err) {
 			if (err) return cb(err);
 			removeTmp(cb);
@@ -651,6 +654,7 @@ var torrentStream = function(link, opts) {
 	};
 
 	engine.destroy = function(cb) {
+		destroyed = true;
 		swarm.destroy();
 		if (engine.tracker) engine.tracker.stop();
 		if (engine.dht) engine.dht.close();

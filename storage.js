@@ -111,12 +111,16 @@ module.exports = function(folder, torrent) {
 		if (!cb) cb = noop;
 		if (!torrent.files.length) return cb();
 
-		var root = torrent.files[0].path.split(path.sep)[0];
-		rimraf(path.join(folder, root), cb);
+		that.close(function(err) {
+			if (err) return cb(err);
+			var root = torrent.files[0].path.split(path.sep)[0];
+			rimraf(path.join(folder, root), cb);
+		});
 	};
 
 	that.close = function(cb) {
 		if (!cb) cb = noop;
+		if (destroyed) return cb();
 		destroyed = true;
 
 		var i = 0;
