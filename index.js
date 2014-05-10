@@ -611,37 +611,8 @@ var torrentStream = function(link, opts) {
 		swarm.remove(addr);
 	};
 
-	engine.remove = function(keepStorage, cb) {
-		if (typeof keepStorage === "function") {
-			cb = keepStorage;
-			keepStorage = false;
-		}
-
-		if (!cb) cb = noop;
-
-		var removeFolders = function(err) {
-			if (err) return cb(err);
-
-			var torrentCachePath = path.dirname(torrentPath);
-			fs.rmdir(torrentCachePath, function(err) {
-				if (err && err.code !== 'ENOTEMPTY') return cb(err);
-
-				var tempPath = path.dirname(torrentCachePath);
-				fs.rmdir(tempPath, function(err) {
-					if (err && err.code !== 'ENOTEMPTY') return cb(err);
-					cb(null);
-				});
-			});
-		};
-
-		fs.unlink(torrentPath, function(err) {
-			if (err && err.code !== 'ENOENT') return cb(err);
-			if (engine.store && !keepStorage) {
-				engine.store.remove(removeFolders);
-			} else {
-				removeFolders();
-			}
-		});
+	engine.remove = function(cb) {
+		engine.store.remove(cb);
 	};
 
 	engine.destroy = function(cb) {
