@@ -50,7 +50,6 @@ module.exports = function(folder, torrent) {
 				from:    from,
 				to:      to,
 				offset:  offset,
-				file:    idx,
 				open:    open
 			});
 		}
@@ -58,11 +57,30 @@ module.exports = function(folder, torrent) {
 
 	var mem = [];
 
-	that.read = function(index, cb) {
-		if (mem[index]) return cb(null, mem[index]);
+	that.read = function(index, range, cb) {
+		if (typeof range === "function") {
+			cb = range;
+			range = false;
+		}
+
+		if (range) {
+			var rangeFrom = range.offset || 0;
+			var rangeTo = range.length ? rangeFrom + range.length : pieceLength;
+			if (rangeFrom === rangeTo) return cb(null, new Buffer(0))
+		}
+
+		if (mem[index]) return cb(null, range ? mem[index].slice(rangeFrom, rangeTo) : mem[index]);
+
+		var targets = piecesMap[index];
+		if (range) {
+			targets = targets.filter(function(target) {
+				return (target.to > rangeFrom && target.from < rangeTo);
+			});
+
+			if(!targets.length) return cb(new Error("no file matching the requested range?"));
+		}
 
 		var buffers = [];
-		var targets = piecesMap[index];
 		var i = 0;
 		var end = targets.length;
 
@@ -72,9 +90,22 @@ module.exports = function(folder, torrent) {
 			if (i >= end) return cb(null, Buffer.concat(buffers));
 
 			var target = targets[i++];
+
+			var from = target.from;
+			var to = target.to;
+			var offset = target.offset;
+
+			if (range) {
+				if(to > rangeTo) to = rangeTo;
+				if(from < rangeFrom) {
+					offset += rangeFrom - from;
+					from = rangeFrom;
+				}
+			}
+
 			target.open(function(err, file) {
 				if (err) return cb(err);
-				file.read(target.offset, target.to - target.from, next);
+				file.read(offset, to - from, next);
 			});
 		};
 

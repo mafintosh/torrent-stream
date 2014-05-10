@@ -429,10 +429,10 @@ var torrentStream = function(link, opts) {
 
 			wire.on('request', function(index, offset, length, cb) {
 				if (pieces[index]) return;
-				engine.store.read(index, function(err, buffer) {
+				engine.store.read(index, { offset: offset, length: length }, function(err, buffer) {
 					if (err) return cb(err);
 					engine.emit('upload', index, offset, length);
-					cb(null, buffer.slice(offset, offset+length));
+					cb(null, buffer);
 				});
 			});
 
