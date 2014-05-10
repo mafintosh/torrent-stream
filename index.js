@@ -94,7 +94,7 @@ var torrentStream = function(link, opts) {
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
-	var torrentPath = path.join(opts.tmp, opts.name, '.torrents', infoHash + '.torrent');
+	var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
@@ -630,12 +630,10 @@ var torrentStream = function(link, opts) {
 	};
 
 	var removeTmp = function(cb) {
-		removeTorrent(function(err) {
-			if (err || !usingTmp) return cb(err);
-			fs.rmdir(opts.path, function(err) {
-				if (err && err.code !== 'ENOTEMPTY') return cb(err);
-				cb();
-			});
+		if (!usingTmp) return removeTorrent(cb);
+		fs.rmdir(opts.path, function(err) {
+			if (err) return cb(err);
+			removeTorrent(cb);
 		});
 	};
 
