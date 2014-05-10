@@ -611,7 +611,7 @@ var torrentStream = function(link, opts) {
 		swarm.remove(addr);
 	};
 
-	engine.remove = function(keepStorage, cb) {
+	engine.remove = function(keepPieces, cb) {
 		if (typeof keepStorage === "function") {
 			cb = keepStorage;
 			keepStorage = false;
@@ -636,7 +636,7 @@ var torrentStream = function(link, opts) {
 
 		fs.unlink(torrentPath, function(err) {
 			if (err && err.code !== 'ENOENT') return cb(err);
-			if (engine.store && !keepStorage) {
+			if (engine.store && !keepPieces) {
 				engine.store.remove(removeFolders);
 			} else {
 				removeFolders();
