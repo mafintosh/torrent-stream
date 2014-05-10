@@ -6,7 +6,6 @@ var crypto = require('crypto');
 var bitfield = require('bitfield');
 var parseTorrent = require('parse-torrent');
 var mkdirp = require('mkdirp');
-var rimraf = require('rimraf');
 var events = require('events');
 var path = require('path');
 var fs = require('fs');
@@ -81,12 +80,14 @@ var torrentStream = function(link, opts) {
 
 	if (!opts) opts = {};
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
-	if (!opts.path) opts.path = path.join(opts.tmp || TMP, opts.name || 'torrent-stream', infoHash);
+	if (!opts.tmp) opts.tmp = TMP;
+	if (!opts.name) opts.name = 'torrent-stream';
+	if (!opts.path) opts.path = path.join(opts.tmp, opts.name, infoHash);
 	if (!opts.blocklist) opts.blocklist = [];
 
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, {size:opts.connections || opts.size});
-	var torrentPath = path.join(opts.path, infoHash + '.torrent');
+	var torrentPath = path.join(opts.tmp, opts.name, '.torrents', infoHash + '.torrent');
 
 	var wires = swarm.wires;
 	var critical = [];
@@ -524,8 +525,15 @@ var torrentStream = function(link, opts) {
 					result['announce-list'] = [];
 
 					var buf = bncode.encode(result);
-					fs.writeFile(torrentPath, buf, function() {
-						ontorrent(parseTorrent(buf));
+					mkdirp(path.dirname(torrentPath), function(err) {
+						if (err) {
+							engine.emit('error', err);
+							return ontorrent(parseTorrent(buf));
+						}
+						fs.writeFile(torrentPath, buf, function(err) {
+							if (err) engine.emit('error', err);
+							ontorrent(parseTorrent(buf));
+						});
 					});
 					return;
 				}
@@ -547,16 +555,12 @@ var torrentStream = function(link, opts) {
 	});
 
 	swarm.pause();
-	mkdirp(opts.path, function(err) {
-		if (err) return engine.emit('error', err);
 
-		if (link.files) {
-			metadata = encode(link);
-			swarm.resume();
-			if (metadata) ontorrent(link);
-			return;
-		}
-
+	if (link.files) {
+		metadata = encode(link);
+		swarm.resume();
+		if (metadata) ontorrent(link);
+	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			swarm.resume();
 			if (!buf) return;
@@ -564,7 +568,7 @@ var torrentStream = function(link, opts) {
 			metadata = encode(torrent);
 			if (metadata) ontorrent(torrent);
 		});
-	});
+	}
 
 	engine.critical = function(piece, width) {
 		for (var i = 0; i < (width || 1); i++) critical[piece+i] = true;
@@ -607,8 +611,37 @@ var torrentStream = function(link, opts) {
 		swarm.remove(addr);
 	};
 
-	engine.remove = function(cb) {
-		rimraf(engine.path, cb || noop);
+	engine.remove = function(keepStorage, cb) {
+		if (typeof keepStorage === "function") {
+			cb = keepStorage;
+			keepStorage = false;
+		}
+
+		if (!cb) cb = noop;
+
+		var removeFolders = function(err) {
+			if (err) return cb(err);
+
+			var torrentCachePath = path.dirname(torrentPath);
+			fs.rmdir(torrentCachePath, function(err) {
+				if (err && err.code !== 'ENOTEMPTY') return cb(err);
+
+				var tempPath = path.dirname(torrentCachePath);
+				fs.rmdir(tempPath, function(err) {
+					if (err && err.code !== 'ENOTEMPTY') return cb(err);
+					cb(null);
+				});
+			});
+		};
+
+		fs.unlink(torrentPath, function(err) {
+			if (err && err.code !== 'ENOENT') return cb(err);
+			if (engine.store && !keepStorage) {
+				engine.store.remove(removeFolders);
+			} else {
+				removeFolders();
+			}
+		});
 	};
 
 	engine.destroy = function(cb) {

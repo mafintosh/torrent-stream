@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var raf = require('random-access-file');
 var mkdirp = require('mkdirp');
+var rimraf = require('rimraf');
 var thunky = require('thunky');
 
 var noop = function() {};
@@ -104,6 +105,17 @@ module.exports = function(folder, torrent) {
 		};
 
 		next();
+	};
+
+	that.remove = function(cb) {
+		if (!torrent.files.length) return;
+		if (!cb) cb = noop;
+
+		var root = torrent.files[0].path.split(path.sep)[0];
+		rimraf(path.join(folder, root), function(err) {
+			if (err) cb(err);
+			fs.rmdir(folder, cb);
+		});
 	};
 
 	that.close = function(cb) {
