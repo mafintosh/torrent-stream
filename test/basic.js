@@ -39,8 +39,9 @@ test('destroy engine right away', function(t) {
 
 test('remove fixture and all content', function(t) {
 	t.plan(1);
-	fixture.destroy();
-	fixture.remove(function() {
-		t.ok(!fs.existsSync(fixture.path));
+	fixture.destroy(function() {
+		fixture.remove(function() {
+			t.ok(!fs.existsSync(fixture.path));
+		});
 	});
 });
