@@ -96,9 +96,10 @@ Connect to a peer manually
 
 Disconnect from a peer manually
 
-#### `engine.remove(cb)`
+#### `engine.remove([keep-pieces], cb)`
 
-Completely remove all saved data for this torrent
+Completely remove all saved data for this torrent.
+Optionally, only remove cache and temporary data but keep downloaded pieces
 
 #### `engine.listen([port], cb)`
 
