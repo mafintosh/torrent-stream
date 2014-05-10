@@ -50,7 +50,6 @@ module.exports = function(folder, torrent) {
 				from:    from,
 				to:      to,
 				offset:  offset,
-				file:    idx,
 				open:    open
 			});
 		}
