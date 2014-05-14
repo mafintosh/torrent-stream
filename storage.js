@@ -22,19 +22,33 @@ module.exports = function(folder, torrent) {
 		var firstPiece = Math.floor(fileStart / pieceLength);
 		var lastPiece  = Math.floor((fileEnd - 1) / pieceLength);
 
-		var open = thunky(function(cb) {
+		var file_raf = null;
+		var nonexistent = false;
+
+		var open = function(create, cb) {
+			if (file_raf) return cb(null, file_raf);
+			if (nonexistent && !create) return cb(null, null);
+
 			var filePath = path.join(folder, file.path);
-			var fileDir  = path.dirname(filePath);
+			fs.exists(filePath, function(exists) {
+				if (!exists && !create) {
+					nonexistent = true;
+					return cb(null, null);
+				} else {
+					nonexistent = false;
+				}
 
-			mkdirp(fileDir, function(err) {
-				if (err) return cb(err);
-				if (destroyed) return cb(new Error('Storage destroyed'));
+				var fileDir  = path.dirname(filePath);
+				mkdirp(fileDir, function(err) {
+					if (err) return cb(err);
+					if (destroyed) return cb(new Error('Storage destroyed'));
 
-				var f = raf(filePath);
-				files.push(f);
-				cb(null, f);
+					file_raf = raf(filePath);
+					files.push(file_raf);
+					cb(null, file_raf);
+				});
 			});
-		});
+		};
 
 		for (var p = firstPiece; p <= lastPiece; ++p) {
 			var pieceStart = p * pieceLength;
@@ -103,8 +117,9 @@ module.exports = function(folder, torrent) {
 				}
 			}
 
-			target.open(function(err, file) {
+			target.open(false, function(err, file) {
 				if (err) return cb(err);
+				if (!file) return cb(null, new Buffer(0));
 				file.read(offset, to - from, next);
 			});
 		};
@@ -129,7 +144,7 @@ module.exports = function(folder, torrent) {
 			}
 
 			var target = targets[i++];
-			target.open(function(err, file) {
+			target.open(true, function(err, file) {
 				if (err) return cb(err);
 				file.write(target.offset, buffer.slice(target.from, target.to), next);
 			});
