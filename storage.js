@@ -3,7 +3,6 @@ var path = require('path');
 var raf = require('random-access-file');
 var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
-var thunky = require('thunky');
 
 var noop = function() {};
 

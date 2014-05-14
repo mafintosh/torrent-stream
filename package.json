@@ -20,8 +20,7 @@
     "parse-torrent": "^0.6.0",
     "peer-wire-swarm": "^0.9.0",
     "random-access-file": "^0.3.1",
-    "rimraf": "^2.2.5",
-    "thunky": "^0.1.0"
+    "rimraf": "^2.2.5"
   },
   "devDependencies": {
     "tap": "^0.4.8"
