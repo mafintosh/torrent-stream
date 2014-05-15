@@ -15,6 +15,8 @@ module.exports = function(folder, torrent) {
 	var pieceLength = torrent.pieceLength;
 	var files = [];
 
+	var nonExistent = new Error("Non-existent file");
+
 	torrent.files.forEach(function(file, idx) {
 		var fileStart = file.offset;
 		var fileEnd   = file.offset + file.length;
@@ -22,17 +24,23 @@ module.exports = function(folder, torrent) {
 		var firstPiece = Math.floor(fileStart / pieceLength);
 		var lastPiece  = Math.floor((fileEnd - 1) / pieceLength);
 
-		var open = thunky(function(cb) {
-			var filePath = path.join(folder, file.path);
-			var fileDir  = path.dirname(filePath);
+		var filePath = path.join(folder, file.path);
 
-			mkdirp(fileDir, function(err) {
+		var openWrite = thunky(function(cb) {
+			mkdirp(path.dirname(filePath), function(err) {
 				if (err) return cb(err);
 				if (destroyed) return cb(new Error('Storage destroyed'));
 
 				var f = raf(filePath);
 				files.push(f);
 				cb(null, f);
+			});
+		});
+
+		var openRead = thunky(function(cb) {
+			fs.exists(filePath, function(exists) {
+				if (exists) return openWrite(cb);
+				cb(nonExistent);
 			});
 		});
 
@@ -47,10 +55,11 @@ module.exports = function(folder, torrent) {
 			if (!piecesMap[p]) piecesMap[p] = [];
 
 			piecesMap[p].push({
-				from:    from,
-				to:      to,
-				offset:  offset,
-				open:    open
+				from:      from,
+				to:        to,
+				offset:    offset,
+				openWrite: openWrite,
+				openRead:  openRead
 			});
 		}
 	});
@@ -103,8 +112,8 @@ module.exports = function(folder, torrent) {
 				}
 			}
 
-			target.open(function(err, file) {
-				if (err) return cb(err);
+			target.openRead(function(err, file) {
+				if (err) return (err === nonExistent) ? cb(null, new Buffer(0)) : cb(err);
 				file.read(offset, to - from, next);
 			});
 		};
@@ -129,7 +138,7 @@ module.exports = function(folder, torrent) {
 			}
 
 			var target = targets[i++];
-			target.open(function(err, file) {
+			target.openWrite(function(err, file) {
 				if (err) return cb(err);
 				file.write(target.offset, buffer.slice(target.from, target.to), next);
 			});
