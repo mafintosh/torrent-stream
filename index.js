@@ -18,7 +18,6 @@ var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
-var util = require('util');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
@@ -157,7 +156,7 @@ var torrentStream = function(link, opts) {
 		}
 
 		engine.files = torrent.files.map(function(file) {
-			file = util._extend({}, file);
+			file = Object.create(file);
 			var offsetPiece = (file.offset / torrent.pieceLength) | 0;
 			var endPiece = ((file.offset+file.length-1) / torrent.pieceLength) | 0;
 
