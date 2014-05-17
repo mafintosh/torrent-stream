@@ -448,6 +448,19 @@ var torrentStream = function(link, opts) {
 			wire.on('bitfield', onupdate);
 			wire.on('have', onupdate);
 
+			wire.isSeeder = false;
+
+			var checkseeder = function() {
+				for (var i = 0; i < torrent.pieces.length; ++i) {
+					if (!wire.peerPieces[i]) return;
+				}
+				wire.isSeeder = true;
+			};
+
+			wire.on('bitfield', checkseeder);
+			wire.on('have', checkseeder);
+			checkseeder();
+
 			id = setTimeout(onchoketimeout, timeout);
 		};
 
@@ -469,10 +482,9 @@ var torrentStream = function(link, opts) {
 			var peers = [];
 
 			swarm.wires.forEach(function(wire) {
-				// wire.isSeeder is not yet implemented
-				/*if (wire.isSeeder) {
+				if (wire.isSeeder) {
 					if (!wire.amChoking) wire.choke();
-				} else*/ if (wire !== rechokeOptimistic) {
+				} else if (wire !== rechokeOptimistic) {
 					peers.push({
 						wire:       wire,
 						downSpeed:  wire.downloadSpeed(),
