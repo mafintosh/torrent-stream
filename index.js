@@ -132,10 +132,15 @@ var torrentStream = function(link, opts) {
 		var torrentTrExtd;
 
 		if (opts.trackers) {
-			torrentTrExtd = Object.create(torrent);
 			//cloning "torrent" obj to freely modify "announce" prop
-			torrentTrExtd.announce = (torrentTrExtd.announce || []).concat(opts.trackers);
+			torrentTrExtd = Object.create(torrent);
+			
+			
+			var internalTrackers = (opts.tracker !== false) && torrentTrExtd.announce;
+			
+			torrentTrExtd.announce = internalTrackers ? internalTrackers.concat(opts.trackers) : opts.trackers;
 		} else {
+			if (opts.tracker === false) return;
 			torrentTrExtd = torrent;
 		}
 
@@ -166,14 +171,13 @@ var torrentStream = function(link, opts) {
 			return [];
 		});
 
-		if (opts.tracker !== false) {
-			if (!engine.tracker) {
-				engine.tracker = getTracker(torrent);
-			} else {
-				engine.tracker.torrentLength = torrent.length;
-			}
-			
+		if (engine.tracker) {
+			engine.tracker.torrentLength = torrent.length;
+		} else {
+			engine.tracker = getTracker(torrent);
 		}
+
+		
 
 		engine.files = torrent.files.map(function(file) {
 			file = Object.create(file);
