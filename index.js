@@ -26,6 +26,9 @@ var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
 var DHT_SIZE = 10000;
 
+var RECHOKE_INTERVAL = 10000;
+var RECHOKE_OPTIMISTIC_DURATION = 3;
+
 var METADATA_BLOCK_SIZE = 1 << 14;
 var METADATA_MAX_SIZE = 1 << 22;
 var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
@@ -101,6 +104,11 @@ var torrentStream = function(link, opts) {
 	var metadataPieces = [];
 	var metadata = null;
 	var refresh = noop;
+
+	var rechokeSlots = +opts.uploads || 5;
+	var rechokeOptimistic = null;
+	var rechokeOptimisticTime = 0;
+	var rechokeIntervalId;
 
 	engine.path = opts.path;
 	engine.files = [];
@@ -440,11 +448,66 @@ var torrentStream = function(link, opts) {
 			wire.on('bitfield', onupdate);
 			wire.on('have', onupdate);
 
-			wire.once('interested', function() {
-				wire.unchoke();
+			id = setTimeout(onchoketimeout, timeout);
+		};
+
+		var rechokeSort = function(a, b) {
+			// Prefer higher speed
+			if (a.speed != b.speed) return a.speed > b.speed ? -1 : 1;
+			// Prefer unchoked
+			if (a.wasChoked != b.wasChoked) return a.wasChoked ? 1 : -1;
+			// Random order
+			return a.salt - b.salt;
+		};
+
+		var onrechoke = function() {
+			if (rechokeOptimisticTime > 0) --rechokeOptimisticTime;
+			else rechokeOptimistic = null;
+
+			var peers = [];
+
+			swarm.wires.forEach(function(wire) {
+				// wire.isSeeder is not yet implemented
+				/*if (wire.isSeeder) {
+					if (!wire.amChoking) wire.choke();
+				} else*/ if (wire !== rechokeOptimistic) {
+					peers.push({
+						wire:       wire,
+						speed:      wire.downloadSpeed(), // TODO: use uploadSpeed() if *we* are seeding
+						salt:       Math.random(),
+						interested: wire.peerInterested,
+						wasChoked:  wire.amChoking,
+						isChoked:   true
+					});
+				}
 			});
 
-			id = setTimeout(onchoketimeout, timeout);
+			peers.sort(rechokeSort);
+
+			var i = 0;
+			var unchokeInterested = 0;
+			for (; i < peers.length && unchokeInterested < rechokeSlots; ++i) {
+				peers[i].isChoked = false;
+				if (peers[i].interested) ++unchokeInterested;
+			}
+
+			if (!rechokeOptimistic && i < peers.length && rechokeSlots) {
+				var candidates = peers.slice(i).filter(function(peer) { return peer.interested; });
+				var optimistic = candidates[(Math.random() * candidates.length) | 0];
+
+				if (optimistic) {
+					optimistic.isChoked = false;
+					rechokeOptimistic = optimistic;
+					rechokeOptimisticTime = RECHOKE_OPTIMISTIC_DURATION;
+				}
+			}
+
+			peers.forEach(function(peer) {
+				if (peer.wasChoked != peer.isChoked) {
+					if (peer.isChoked) peer.wire.choke();
+					else peer.wire.unchoke();
+				}
+			});
 		};
 
 		var onready = function() {
@@ -456,6 +519,8 @@ var torrentStream = function(link, opts) {
 				oninterestchange();
 				onupdate();
 			};
+
+			rechokeIntervalId = setInterval(onrechoke, RECHOKE_INTERVAL);
 
 			engine.emit('ready');
 			refresh();
@@ -652,6 +717,7 @@ var torrentStream = function(link, opts) {
 	engine.destroy = function(cb) {
 		destroyed = true;
 		swarm.destroy();
+		clearInterval(rechokeIntervalId);
 		if (engine.tracker) engine.tracker.stop();
 		if (engine.dht) engine.dht.close();
 		if (engine.store) {
