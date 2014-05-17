@@ -128,6 +128,29 @@ var torrentStream = function(link, opts) {
 		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
 	}
 
+	var getTracker = function(torrent) {
+		var torrentTrExtd;
+
+		if (opts.trackers) {
+			torrentTrExtd = Object.create(torrent);
+			//cloning "torrent" obj to freely modify "announce" prop
+			torrentTrExtd.announce = (torrentTrExtd.announce || []).concat(opts.trackers);
+		} else {
+			torrentTrExtd = torrent;
+		}
+
+		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrentTrExtd);
+
+		tr.on('peer', function(addr) {
+			engine.connect(addr);
+		});
+
+		tr.on('error', noop);
+
+		tr.start();
+		return tr;
+	};
+
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
 		engine.torrent = torrent;
@@ -144,15 +167,10 @@ var torrentStream = function(link, opts) {
 		});
 
 		if (opts.tracker !== false) {
-			var tr = engine.tracker = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
-
-			tr.on('peer', function(addr) {
-				engine.connect(addr);
-			});
-
-			tr.on('error', noop);
-
-			tr.start();
+			if (!engine.tracker) {
+				engine.tracker = getTracker(torrent);
+			}
+			
 		}
 
 		engine.files = torrent.files.map(function(file) {
@@ -532,6 +550,7 @@ var torrentStream = function(link, opts) {
 					result.info = bncode.decode(metadata);
 					result['announce-list'] = [];
 
+					
 					var buf = bncode.encode(result);
 					ontorrent(parseTorrent(buf));
 
@@ -570,7 +589,10 @@ var torrentStream = function(link, opts) {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
 			swarm.resume();
-			if (!buf) return;
+			if (!buf) {
+				engine.tracker = getTracker(link);
+				return
+			};
 			var torrent = parseTorrent(buf);
 			metadata = encode(torrent);
 			if (metadata) ontorrent(torrent);
