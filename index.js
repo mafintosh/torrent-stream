@@ -134,8 +134,8 @@ var torrentStream = function(link, opts) {
 		if (opts.trackers) {
 			//cloning "torrent" obj to freely modify "announce" prop
 			torrentTrExtd = Object.create(torrent);
-			
-			
+
+
 			var internalTrackers = (opts.tracker !== false) && torrentTrExtd.announce;
 			
 			torrentTrExtd.announce = internalTrackers ? internalTrackers.concat(opts.trackers) : opts.trackers;
@@ -172,6 +172,11 @@ var torrentStream = function(link, opts) {
 		});
 
 		if (engine.tracker) {
+			/*
+			If we have tracker than it had been created before we got infoDictionary.
+			So client do not know torrent lenght and can not report right information about uploads
+
+			*/
 			engine.tracker.torrentLength = torrent.length;
 		} else {
 			engine.tracker = getTracker(torrent);
@@ -595,6 +600,10 @@ var torrentStream = function(link, opts) {
 			if (destroyed) return;
 			swarm.resume();
 			if (!buf) {
+				/* 
+				We know only infoHash here, not full infoDictionary.
+				But infoHash is enought to connect to trackers and get peers.
+				*/
 				engine.tracker = getTracker(link);
 				return
 			};
