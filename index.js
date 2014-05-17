@@ -481,7 +481,7 @@ var torrentStream = function(link, opts) {
 
 			var peers = [];
 
-			swarm.wires.forEach(function(wire) {
+			wires.forEach(function(wire) {
 				if (wire.isSeeder) {
 					if (!wire.amChoking) wire.choke();
 				} else if (wire !== rechokeOptimistic) {
