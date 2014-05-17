@@ -500,7 +500,7 @@ var torrentStream = function(link, opts) {
 
 				if (optimistic) {
 					optimistic.isChoked = false;
-					rechokeOptimistic = optimistic;
+					rechokeOptimistic = optimistic.wire;
 					rechokeOptimisticTime = RECHOKE_OPTIMISTIC_DURATION;
 				}
 			}
