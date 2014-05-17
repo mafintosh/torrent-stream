@@ -552,7 +552,6 @@ var torrentStream = function(link, opts) {
 					result.info = bncode.decode(metadata);
 					result['announce-list'] = [];
 
-					
 					var buf = bncode.encode(result);
 					ontorrent(parseTorrent(buf));
 
