@@ -169,6 +169,8 @@ var torrentStream = function(link, opts) {
 		if (opts.tracker !== false) {
 			if (!engine.tracker) {
 				engine.tracker = getTracker(torrent);
+			} else {
+				engine.tracker.torrentLength = torrent.length;
 			}
 			
 		}
