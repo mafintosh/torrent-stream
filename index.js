@@ -532,14 +532,12 @@ var torrentStream = function(link, opts) {
 					result['announce-list'] = [];
 
 					var buf = bncode.encode(result);
+					ontorrent(parseTorrent(buf));
+
 					mkdirp(path.dirname(torrentPath), function(err) {
-						if (err) {
-							engine.emit('error', err);
-							return ontorrent(parseTorrent(buf));
-						}
+						if (err) return engine.emit('error', err);
 						fs.writeFile(torrentPath, buf, function(err) {
 							if (err) engine.emit('error', err);
-							ontorrent(parseTorrent(buf));
 						});
 					});
 					return;
