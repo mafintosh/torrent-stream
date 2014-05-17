@@ -450,8 +450,10 @@ var torrentStream = function(link, opts) {
 
 			wire.isSeeder = false;
 
+			var i = 0;
 			var checkseeder = function() {
-				for (var i = 0; i < torrent.pieces.length; ++i) {
+				if (wire.peerPieces.length !== torrent.pieces.length) return;
+				for (; i < torrent.pieces.length; ++i) {
 					if (!wire.peerPieces[i]) return;
 				}
 				wire.isSeeder = true;
