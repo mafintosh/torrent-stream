@@ -155,7 +155,8 @@ var torrentStream = function(link, opts) {
 			tr.start();
 		}
 
-		torrent.files.forEach(function(file) {
+		engine.files = torrent.files.map(function(file) {
+			file = Object.create(file);
 			var offsetPiece = (file.offset / torrent.pieceLength) | 0;
 			var endPiece = ((file.offset+file.length-1) / torrent.pieceLength) | 0;
 
@@ -179,7 +180,7 @@ var torrentStream = function(link, opts) {
 				return stream;
 			};
 
-			engine.files.push(file);
+			return file;
 		});
 
 		var oninterestchange = function() {
