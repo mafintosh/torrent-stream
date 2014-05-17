@@ -452,8 +452,10 @@ var torrentStream = function(link, opts) {
 		};
 
 		var rechokeSort = function(a, b) {
-			// Prefer higher speed
-			if (a.speed != b.speed) return a.speed > b.speed ? -1 : 1;
+			// Prefer higher download speed
+			if (a.downSpeed != b.downSpeed) return a.downSpeed > b.downSpeed ? -1 : 1;
+			// Prefer higher upload speed
+			if (a.upSpeed != b.upSpeed) return a.upSpeed > b.upSpeed ? -1 : 1;
 			// Prefer unchoked
 			if (a.wasChoked != b.wasChoked) return a.wasChoked ? 1 : -1;
 			// Random order
@@ -473,7 +475,8 @@ var torrentStream = function(link, opts) {
 				} else*/ if (wire !== rechokeOptimistic) {
 					peers.push({
 						wire:       wire,
-						speed:      wire.downloadSpeed(), // TODO: use uploadSpeed() if *we* are seeding
+						downSpeed:  wire.downloadSpeed(),
+						upSpeed:    wire.uploadSpeed(),
 						salt:       Math.random(),
 						interested: wire.peerInterested,
 						wasChoked:  wire.amChoking,
