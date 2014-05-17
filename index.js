@@ -105,7 +105,7 @@ var torrentStream = function(link, opts) {
 	var metadata = null;
 	var refresh = noop;
 
-	var rechokeSlots = +opts.uploads || 5;
+	var rechokeSlots = (opts.uploads === false || opts.uploads === 0) ? 0 : (+opts.uploads || 5);
 	var rechokeOptimistic = null;
 	var rechokeOptimisticTime = 0;
 	var rechokeIntervalId;
