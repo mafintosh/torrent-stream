@@ -84,7 +84,7 @@ Emitted everytime a piece is uploaded.
 
 An array of all files in the torrent. See the file section for more info on what methods the file has
 
-#### `engine.destroy()`
+#### `engine.destroy(cb)`
 
 Destroy the engine. Destroys all connections to peers
 
