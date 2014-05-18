@@ -54,7 +54,7 @@ Create a new engine instance. Options can contain the following
 ``` js
 {
 	connections: 100,     // Max amount of peers to be connected to.
-	uploads: 5            // Number of upload slots.
+	uploads: 5,           // Number of upload slots.
 	tmp: '/tmp',          // Root folder for the files storage.
 	                      // Defaults to '/tmp' or temp folder specific to your OS.
 	                      // Each torrent will be placed into a separate folder under /tmp/torrent-stream/{infoHash}
