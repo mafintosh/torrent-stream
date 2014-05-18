@@ -171,7 +171,12 @@ var torrentStream = function(link, opts) {
 			*/
 			engine.tracker.torrentLength = torrent.length;
 		} else {
-			engine.tracker = createTracker(torrent);
+			process.nextTick(function() {
+				// let execute engine.listen() before createTracker()
+				if (!engine.tracker) {
+					engine.tracker = createTracker(torrent);
+				}
+			});
 		}
 
 		engine.files = torrent.files.map(function(file) {
@@ -595,7 +600,7 @@ var torrentStream = function(link, opts) {
 				But infoHash is enough to connect to trackers and get peers.
 				*/
 				process.nextTick(function() {
-					//let execute engine.listen() before createTracker()
+					// let execute engine.listen() before createTracker()
 					if (!engine.tracker) {
 						engine.tracker = createTracker(link);
 					}
@@ -698,10 +703,8 @@ var torrentStream = function(link, opts) {
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
 
-		if (engine.tracker && engine.torrent) {
-			engine.tracker.stop();
-			engine.tracker = createTracker(engine.torrent);
-		}
+		if (engine.tracker) engine.tracker.stop();
+		if (engine.torrent) engine.tracker = createTracker(engine.torrent);
 	};
 
 	return engine;

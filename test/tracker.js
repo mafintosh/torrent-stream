@@ -21,10 +21,8 @@ test('seed should connect to the tracker', function (t) {
 	t.plan(3);
 
 	server.on('listening', t.ok.bind(t, true, 'tracker should be listening'));
-	server.on('start', function (addr) {
-		if (addr === '127.0.0.1:6882') {
-			t.ok(true, 'seed connected');
-		}
+	server.once('start', function (addr) {
+		t.equal(addr, '127.0.0.1:6882');
 	});
 	server.listen(12345);
 
@@ -38,15 +36,11 @@ test('peer should connect to the swarm using .torrent file', function (t) {
 		t.ok(true, 'should be ready');
 		engine.destroy(t.ok.bind(t, true, 'should be destroyed'));
 	});
-	server.on('start', function (addr) {
-		if (addr === '127.0.0.1:6881') {
-			t.ok(true, 'peer connected');
-		}
+	server.once('start', function (addr) {
+		t.equal(addr, '127.0.0.1:6881');
 	});
-	server.on('stop', function (addr) {
-		if (addr === '127.0.0.1:6881') {
-			t.ok(true, 'peer disconnected');
-		}
+	server.once('stop', function (addr) {
+		t.equal(addr, '127.0.0.1:6881');
 	});
 });
 
@@ -58,10 +52,8 @@ test('peer should connect to the swarm using magnet link', function (t) {
 		t.ok(true, 'should be ready');
 		engine.destroy(t.ok.bind(t, true, 'should be destroyed'));
 	});
-	server.on('start', function (addr) {
-		if (addr === '127.0.0.1:6881') {
-			t.ok(true, 'peer connected');
-		}
+	server.once('start', function (addr) {
+		t.equal(addr, '127.0.0.1:6881');
 	});
 });
 
