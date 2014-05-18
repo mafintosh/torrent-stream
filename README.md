@@ -66,11 +66,11 @@ Create a new engine instance. Options can contain the following
 	                      // Defaults to true
 	trackers: [
 	    'udp://tracker.openbittorrent.com:80',
-	    'udp://tracker.ccc.de:80']
-	                      //Allows to declare trackers list to use besides to trackers from torrent file
-	                      //May be combined with "tracker" option to disable trackers from torrent file and use your own
-	                      //Defaults to empty
-
+	    'udp://tracker.ccc.de:80'
+	]
+	                      // Allows to declare trackers list to use in addition to trackers from torrent file or magnet link
+	                      // May be combined with "tracker" option to disable trackers from torrent file and use your own
+	                      // Defaults to empty
 }
 ```
 

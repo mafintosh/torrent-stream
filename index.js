@@ -173,16 +173,13 @@ var torrentStream = function(link, opts) {
 
 		if (engine.tracker) {
 			/*
-			If we have tracker than it had been created before we got infoDictionary.
-			So client do not know torrent lenght and can not report right information about uploads
-
+			If we have tracker then it had been created before we got infoDictionary.
+			So client do not know torrent length and can not report right information about uploads
 			*/
 			engine.tracker.torrentLength = torrent.length;
 		} else {
 			engine.tracker = getTracker(torrent);
 		}
-
-		
 
 		engine.files = torrent.files.map(function(file) {
 			file = Object.create(file);
@@ -602,11 +599,11 @@ var torrentStream = function(link, opts) {
 			if (!buf) {
 				/* 
 				We know only infoHash here, not full infoDictionary.
-				But infoHash is enought to connect to trackers and get peers.
+				But infoHash is enough to connect to trackers and get peers.
 				*/
 				engine.tracker = getTracker(link);
-				return
-			};
+				return;
+			}
 			var torrent = parseTorrent(buf);
 			metadata = encode(torrent);
 			if (metadata) ontorrent(torrent);
