@@ -16,7 +16,6 @@ torrent-stream is a node module that allows you to access files inside a torrent
 
 ``` js
 var torrentStream = require('torrent-stream');
-var fs = require('fs');
 
 var engine = torrentStream('magnet:my-magnet-link');
 
