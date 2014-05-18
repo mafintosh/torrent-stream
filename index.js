@@ -129,22 +129,15 @@ var torrentStream = function(link, opts) {
 	}
 
 	var getTracker = function(torrent) {
-		var torrentTrExtd;
-
 		if (opts.trackers) {
-			//cloning "torrent" obj to freely modify "announce" prop
-			torrentTrExtd = Object.create(torrent);
-
-
-			var internalTrackers = (opts.tracker !== false) && torrentTrExtd.announce;
-			
-			torrentTrExtd.announce = internalTrackers ? internalTrackers.concat(opts.trackers) : opts.trackers;
-		} else {
-			if (opts.tracker === false) return;
-			torrentTrExtd = torrent;
+			torrent = Object.create(torrent);
+			var trackers = (opts.tracker !== false) && torrent.announce ? torrent.announce : [];
+			torrent.announce = trackers.concat(opts.trackers);
+		} else if (opts.tracker === false) {
+			return;
 		}
 
-		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrentTrExtd);
+		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
 
 		tr.on('peer', function(addr) {
 			engine.connect(addr);
