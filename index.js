@@ -24,7 +24,9 @@ var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
-var DHT_SIZE = 10000;
+
+var DHT_GROW_SIZE = 1000;
+var DHT_GROW_INTERVAL = 1000;
 
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
@@ -133,7 +135,17 @@ var torrentStream = function(link, opts) {
 				engine.connect(addr);
 			}
 		});
-		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
+		table.findPeers(DHT_GROW_SIZE);
+
+		var interval = setInterval(function () {
+			if (swarm.queued < swarm.size && table.missingPeers === 0) {
+				table.findPeers(DHT_GROW_SIZE);
+			}
+		}, DHT_GROW_INTERVAL);
+
+		swarm.on('close', function () {
+			clearInterval(interval);
+		});
 	}
 
 	var ontorrent = function(torrent) {
