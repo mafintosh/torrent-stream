@@ -128,6 +128,34 @@ var torrentStream = function(link, opts) {
 		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
 	}
 
+	var getTracker = function(torrent) {
+		var torrentTrExtd;
+
+		if (opts.trackers) {
+			//cloning "torrent" obj to freely modify "announce" prop
+			torrentTrExtd = Object.create(torrent);
+
+
+			var internalTrackers = (opts.tracker !== false) && torrentTrExtd.announce;
+			
+			torrentTrExtd.announce = internalTrackers ? internalTrackers.concat(opts.trackers) : opts.trackers;
+		} else {
+			if (opts.tracker === false) return;
+			torrentTrExtd = torrent;
+		}
+
+		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrentTrExtd);
+
+		tr.on('peer', function(addr) {
+			engine.connect(addr);
+		});
+
+		tr.on('error', noop);
+
+		tr.start();
+		return tr;
+	};
+
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
 		engine.torrent = torrent;
@@ -143,17 +171,18 @@ var torrentStream = function(link, opts) {
 			return [];
 		});
 
-		if (opts.tracker !== false) {
-			var tr = engine.tracker = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
+		if (engine.tracker) {
+			/*
+			If we have tracker than it had been created before we got infoDictionary.
+			So client do not know torrent lenght and can not report right information about uploads
 
-			tr.on('peer', function(addr) {
-				engine.connect(addr);
-			});
-
-			tr.on('error', noop);
-
-			tr.start();
+			*/
+			engine.tracker.torrentLength = torrent.length;
+		} else {
+			engine.tracker = getTracker(torrent);
 		}
+
+		
 
 		engine.files = torrent.files.map(function(file) {
 			file = Object.create(file);
@@ -570,7 +599,14 @@ var torrentStream = function(link, opts) {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
 			swarm.resume();
-			if (!buf) return;
+			if (!buf) {
+				/* 
+				We know only infoHash here, not full infoDictionary.
+				But infoHash is enought to connect to trackers and get peers.
+				*/
+				engine.tracker = getTracker(link);
+				return
+			};
 			var torrent = parseTorrent(buf);
 			metadata = encode(torrent);
 			if (metadata) ontorrent(torrent);
