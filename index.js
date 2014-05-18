@@ -136,6 +136,27 @@ var torrentStream = function(link, opts) {
 		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
 	}
 
+	var getTracker = function(torrent) {
+		if (opts.trackers) {
+			torrent = Object.create(torrent);
+			var trackers = (opts.tracker !== false) && torrent.announce ? torrent.announce : [];
+			torrent.announce = trackers.concat(opts.trackers);
+		} else if (opts.tracker === false) {
+			return;
+		}
+
+		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
+
+		tr.on('peer', function(addr) {
+			engine.connect(addr);
+		});
+
+		tr.on('error', noop);
+
+		tr.start();
+		return tr;
+	};
+
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
 		engine.torrent = torrent;
@@ -151,16 +172,14 @@ var torrentStream = function(link, opts) {
 			return [];
 		});
 
-		if (opts.tracker !== false) {
-			var tr = engine.tracker = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
-
-			tr.on('peer', function(addr) {
-				engine.connect(addr);
-			});
-
-			tr.on('error', noop);
-
-			tr.start();
+		if (engine.tracker) {
+			/*
+			If we have tracker then it had been created before we got infoDictionary.
+			So client do not know torrent length and can not report right information about uploads
+			*/
+			engine.tracker.torrentLength = torrent.length;
+		} else {
+			engine.tracker = getTracker(torrent);
 		}
 
 		engine.files = torrent.files.map(function(file) {
@@ -650,7 +669,19 @@ var torrentStream = function(link, opts) {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
 			swarm.resume();
-			if (!buf) return;
+			if (!buf) {
+				/* 
+				We know only infoHash here, not full infoDictionary.
+				But infoHash is enough to connect to trackers and get peers.
+				*/
+				process.nextTick(function() {
+					//let execute engine.listen() before getTracker() but after engine instance creation
+					if (!engine.tracker) {
+						engine.tracker = getTracker(link);
+					}
+				});
+				return;
+			}
 			var torrent = parseTorrent(buf);
 			metadata = encode(torrent);
 			if (metadata) ontorrent(torrent);
@@ -747,6 +778,11 @@ var torrentStream = function(link, opts) {
 		if (typeof port === 'function') return engine.listen(0, port);
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
+		if (engine.tracker) {
+			engine.tracker.stop();
+			engine.tracker = getTracker(engine.torrent);
+		}
+
 	};
 
 	return engine;
