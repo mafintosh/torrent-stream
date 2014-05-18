@@ -169,7 +169,6 @@ var torrentStream = function(link, opts) {
 			};
 
 			file.createReadStream = function(opts) {
-				var self = this;
 				var stream = fileStream(engine, file, opts);
 
 				engine.select(stream.startPiece, stream.endPiece, true, stream.notify.bind(stream));
@@ -256,11 +255,11 @@ var torrentStream = function(link, opts) {
 
 			if (!min) return false;
 
-			for (var i = 0; i < r.length; i++) {
+			for (i = 0; i < r.length; i++) {
 				if (r[i] === min) r[i] = null;
 			}
 
-			for (var i = 0; i < min.requests.length; i++) {
+			for (i = 0; i < min.requests.length; i++) {
 				var req = min.requests[i];
 				if (req.piece !== index) continue;
 				pieces[index].cancel((req.offset / piece.BLOCK_SIZE) | 0);
@@ -503,7 +502,7 @@ var torrentStream = function(link, opts) {
 					return;
 				}
 
-				if (!(piece >= 0)) return;
+				if (piece < 0) return;
 				if (message.msg_type === 2) return;
 
 				if (message.msg_type === 0) {
@@ -541,7 +540,6 @@ var torrentStream = function(link, opts) {
 							if (err) engine.emit('error', err);
 						});
 					});
-					return;
 				}
 			});
 
@@ -663,7 +661,7 @@ var torrentStream = function(link, opts) {
 	};
 
 	engine.listen = function(port, cb) {
-		if (typeof port === 'function') return that.listen(0, port);
+		if (typeof port === 'function') return engine.listen(0, port);
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
 	};
