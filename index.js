@@ -128,7 +128,7 @@ var torrentStream = function(link, opts) {
 		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
 	}
 
-	var getTracker = function(torrent) {
+	var createTracker = function (torrent) {
 		if (opts.trackers) {
 			torrent = Object.create(torrent);
 			var trackers = (opts.tracker !== false) && torrent.announce ? torrent.announce : [];
@@ -171,7 +171,7 @@ var torrentStream = function(link, opts) {
 			*/
 			engine.tracker.torrentLength = torrent.length;
 		} else {
-			engine.tracker = getTracker(torrent);
+			engine.tracker = createTracker(torrent);
 		}
 
 		engine.files = torrent.files.map(function(file) {
@@ -594,7 +594,7 @@ var torrentStream = function(link, opts) {
 				We know only infoHash here, not full infoDictionary.
 				But infoHash is enough to connect to trackers and get peers.
 				*/
-				engine.tracker = getTracker(link);
+				engine.tracker = createTracker(link);
 				return;
 			}
 			var torrent = parseTorrent(buf);
@@ -692,6 +692,11 @@ var torrentStream = function(link, opts) {
 		if (typeof port === 'function') return engine.listen(0, port);
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
+
+		if (engine.tracker && engine.torrent) {
+			engine.tracker.stop();
+			engine.tracker = createTracker(engine.torrent);
+		}
 	};
 
 	return engine;
