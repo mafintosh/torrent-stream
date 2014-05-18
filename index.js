@@ -594,7 +594,12 @@ var torrentStream = function(link, opts) {
 				We know only infoHash here, not full infoDictionary.
 				But infoHash is enough to connect to trackers and get peers.
 				*/
-				engine.tracker = getTracker(link);
+				process.nextTick(function() {
+					//let execute engine.listen() before getTracker() but after engine instance creation
+					if (!engine.tracker) {
+						engine.tracker = getTracker(link);
+					}
+				});
 				return;
 			}
 			var torrent = parseTorrent(buf);
@@ -692,6 +697,11 @@ var torrentStream = function(link, opts) {
 		if (typeof port === 'function') return engine.listen(0, port);
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
+		if (engine.tracker) {
+			engine.tracker.stop();
+			engine.tracker = getTracker(engine.torrent);
+		}
+
 	};
 
 	return engine;
