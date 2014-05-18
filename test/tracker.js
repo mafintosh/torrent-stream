@@ -37,7 +37,7 @@ test('peer should connect to the swarm using .torrent file', function (t) {
 	var engine = torrents(torrent, { dht: false });
 	engine.once('ready', function () {
 		t.ok(true, 'should be ready');
-		engine.destroy(function() {
+		engine.destroy(function () {
 			engine.remove(t.ok.bind(t, true, 'should be destroyed'));
 		});
 	});
@@ -55,7 +55,7 @@ test('peer should connect to the swarm using magnet link', function (t) {
 		'&tr=http%3A%2F%2F127.0.0.1%3A12345%2Fannounce', { dht: false, tmp: tmpPath });
 	engine.once('ready', function () {
 		t.ok(true, 'should be ready');
-		engine.destroy(function() {
+		engine.destroy(function () {
 			engine.remove(t.ok.bind(t, true, 'should be destroyed'));
 		});
 	});
@@ -74,7 +74,7 @@ test('peer should connect to the swarm using magnet link and trackers', function
 		{ dht: false, tmp: tmpPath, trackers: ['http://127.0.0.1:12345/announce'] });
 	engine.once('ready', function () {
 		t.ok(true, 'should be ready');
-		engine.destroy(function() {
+		engine.destroy(function () {
 			engine.remove(t.ok.bind(t, true, 'should be destroyed'));
 		});
 	});
@@ -101,6 +101,23 @@ test('peer should connect to an alternate tracker', function (t) {
 		t.ok(true, 'should be ready');
 		engine.destroy(t.ok.bind(t, true, 'should be destroyed'));
 		server.close(t.ok.bind(t, true, 'tracker should be closed'));
+	});
+});
+
+test('peer should connect to public trackers', function (t) {
+	t.plan(2);
+	var engine = torrents('magnet:?xt=urn:btih:2e0ba00b6ae7d68d03a61e682fe85e6964796b27',
+		{ dht: false, tmp: tmpPath, trackers: [
+			'udp://tracker.publicbt.com:80',
+			'udp://tracker.openbittorrent.com:80',
+			'udp://tracker.ccc.de:80',
+			'udp://tracker.istole.it:80'
+		] });
+	engine.once('ready', function () {
+		t.ok(true, 'should be ready');
+		engine.destroy(function () {
+			engine.remove(t.ok.bind(t, true, 'should be destroyed'));
+		});
 	});
 });
 
