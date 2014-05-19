@@ -61,7 +61,6 @@ test('peer should connect to the swarm using magnet link', function (t) {
 	});
 	server.once('start', function (addr) {
 		t.equal(addr, '127.0.0.1:6881');
-		engine.connect('127.0.0.1:6882'); // TODO: it's a workaround
 	});
 	server.once('stop', function (addr) {
 		t.equal(addr, '127.0.0.1:6881');
@@ -80,7 +79,6 @@ test('peer should connect to the swarm using magnet link and trackers', function
 	});
 	server.once('start', function (addr) {
 		t.equal(addr, '127.0.0.1:6881');
-		engine.connect('127.0.0.1:6882'); // TODO: it's a workaround
 	});
 	server.once('stop', function (addr) {
 		t.equal(addr, '127.0.0.1:6881');
