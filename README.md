@@ -62,8 +62,14 @@ Create a new engine instance. Options can contain the following
 	                      // Defaults to true
 	dht: 10000,           // Use DHT to initialize the swarm.
 	                      // Defaults to 10000 peers, set false to disable
-	tracker: true         // Whether or not to use a tracker
+	tracker: true,        // Whether or not to use trackers from torrent file or magnet link
 	                      // Defaults to true
+	trackers: [
+	    'udp://tracker.openbittorrent.com:80',
+	    'udp://tracker.ccc.de:80'
+	]
+	                      // Allows to declare additional custom trackers to use
+	                      // Defaults to empty
 }
 ```
 
