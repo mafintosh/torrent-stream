@@ -145,6 +145,8 @@ var torrentStream = function(link, opts) {
 			return;
 		}
 
+		if (!torrent.announce || !torrent.announce.length) return;
+
 		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
 
 		tr.on('peer', function(addr) {
