@@ -74,7 +74,8 @@ var isPeerBlocked = function(addr, blocklist) {
 	return blockedReason;
 };
 
-var torrentStream = function(link, opts) {
+var torrentStream = function(link, opts, cb) {
+	if (typeof opts === 'function') return torrentStream(link, null, opts);
 	link = typeof link === 'string' ? magnet(link) : Buffer.isBuffer(link) ? parseTorrent(link) : link;
 
 	if (!link || !link.infoHash) throw new Error('You must pass a valid torrent or magnet link');
@@ -98,6 +99,8 @@ var torrentStream = function(link, opts) {
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, { size: (opts.connections || opts.size), speed: 10 });
 	var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent');
+
+	if (cb) engine.on('ready', cb.bind(null, engine));
 
 	var wires = swarm.wires;
 	var critical = [];
