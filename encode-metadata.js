@@ -1,4 +1,3 @@
-var parse = require('parse-torrent');
 var bncode = require('bncode');
 var crypto = require('crypto');
 

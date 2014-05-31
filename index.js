@@ -13,6 +13,7 @@ var os = require('os');
 var eos = require('end-of-stream');
 var tracker = require('./tracker');
 var encode = require('./encode-metadata');
+var exchangeMetadata = require('./exchange-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
@@ -27,15 +28,7 @@ var DEFAULT_PORT = 6881;
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
 
-var METADATA_BLOCK_SIZE = 1 << 14;
-var METADATA_MAX_SIZE = 1 << 22;
 var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
-
-var EXTENSIONS = {
-	m: {
-		ut_metadata: 1
-	}
-};
 
 var noop = function() {};
 
@@ -84,8 +77,6 @@ var torrentStream = function(link, opts, cb) {
 
 	var wires = swarm.wires;
 	var critical = [];
-	var metadataPieces = [];
-	var metadata = null;
 	var refresh = noop;
 
 	var rechokeSlots = (opts.uploads === false || opts.uploads === 0) ? 0 : (+opts.uploads || 10);
@@ -94,6 +85,7 @@ var torrentStream = function(link, opts, cb) {
 	var rechokeIntervalId;
 
 	engine.infoHash = infoHash;
+	engine.metadata = null;
 	engine.path = opts.path;
 	engine.files = [];
 	engine.selection = [];
@@ -537,91 +529,36 @@ var torrentStream = function(link, opts, cb) {
 		loop(0);
 	};
 
+	var exchange = exchangeMetadata(engine, function (metadata) {
+		var result = {};
+		result.info = bncode.decode(metadata);
+		result['announce-list'] = [];
+
+		var buf = bncode.encode(result);
+		ontorrent(parseTorrent(buf));
+
+		mkdirp(path.dirname(torrentPath), function(err) {
+			if (err) return engine.emit('error', err);
+			fs.writeFile(torrentPath, buf, function(err) {
+				if (err) engine.emit('error', err);
+			});
+		});
+	});
 
 	swarm.on('wire', function(wire) {
 		engine.emit('wire', wire);
 
-		wire.once('extended', function(id, handshake) {
-			handshake = bncode.decode(handshake);
-
-			if (id || !handshake.m || handshake.m.ut_metadata === undefined) return;
-
-			var channel = handshake.m.ut_metadata;
-			var size = handshake.metadata_size;
-
-			wire.on('extended', function(id, ext) {
-				if (id !== EXTENSIONS.m.ut_metadata) return;
-
-				try {
-					var delimiter = ext.toString('ascii').indexOf('ee');
-					var message = bncode.decode(ext.slice(0, delimiter === -1 ? ext.length : delimiter+2));
-					var piece = message.piece;
-				} catch (err) {
-					return;
-				}
-
-				if (piece < 0) return;
-				if (message.msg_type === 2) return;
-
-				if (message.msg_type === 0) {
-					if (!metadata) return wire.extended(channel, {msg_type:2, piece:piece});
-					var offset = piece * METADATA_BLOCK_SIZE;
-					var buf = metadata.slice(offset, offset + METADATA_BLOCK_SIZE);
-					wire.extended(channel, Buffer.concat([bncode.encode({msg_type:1, piece:piece}), buf]));
-					return;
-				}
-
-				if (message.msg_type === 1 && !metadata) {
-					metadataPieces[piece] = ext.slice(delimiter+2);
-					for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
-						if (!metadataPieces[i]) return;
-					}
-
-					metadata = Buffer.concat(metadataPieces);
-
-					if (infoHash !== sha1(metadata)) {
-						metadataPieces = [];
-						metadata = null;
-						return;
-					}
-
-					var result = {};
-					result.info = bncode.decode(metadata);
-					result['announce-list'] = [];
-
-					var buf = bncode.encode(result);
-					ontorrent(parseTorrent(buf));
-
-					mkdirp(path.dirname(torrentPath), function(err) {
-						if (err) return engine.emit('error', err);
-						fs.writeFile(torrentPath, buf, function(err) {
-							if (err) engine.emit('error', err);
-						});
-					});
-				}
-			});
-
-			if (size > METADATA_MAX_SIZE) return;
-			if (!size || metadata) return;
-
-			for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
-				if (metadataPieces[i]) continue;
-				wire.extended(channel, {msg_type:0, piece:i});
-			}
-		});
+		exchange(wire);
 
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
-		if (!wire.peerExtensions.extended) return;
-
-		wire.extended(0, metadata ? {m:{ut_metadata:1}, metadata_size:metadata.length} : {m:{ut_metadata:1}});
 	});
 
 	swarm.pause();
 
 	if (link.files) {
-		metadata = encode(link);
+		engine.metadata = encode(link);
 		swarm.resume();
-		if (metadata) ontorrent(link);
+		if (engine.metadata) ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
@@ -640,8 +577,8 @@ var torrentStream = function(link, opts, cb) {
 				return;
 			}
 			var torrent = parseTorrent(buf);
-			metadata = encode(torrent);
-			if (metadata) ontorrent(torrent);
+			engine.metadata = encode(torrent);
+			if (engine.metadata) ontorrent(torrent);
 		});
 	}
 
