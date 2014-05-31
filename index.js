@@ -11,20 +11,18 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
-var ip = require('ip');
-var dht = require('bittorrent-dht');
 var tracker = require('bittorrent-tracker');
 var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
+var dht = require('./dht');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
-var DHT_SIZE = 10000;
 
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
@@ -55,23 +53,6 @@ var falsy = function() {
 
 var toNumber = function(val) {
 	return val === true ? 1 : (val || 0);
-};
-
-var isPeerBlocked = function(addr, blocklist) {
-	var blockedReason = null;
-	// TODO: support IPv6
-	var searchAddr = ip.toLong(addr);
-	for (var i = 0, l = blocklist.length; i < l; i++) {
-		var block = blocklist[i];
-		if (!block.startAddress || !block.endAddress) continue;
-		var startAddress = ip.toLong(block.startAddress);
-		var endAddress = ip.toLong(block.endAddress);
-		if (searchAddr >= startAddress && searchAddr <= endAddress) {
-			blockedReason = block.reason || true;
-			break;
-		}
-	}
-	return blockedReason;
 };
 
 var torrentStream = function(link, opts, cb) {
@@ -113,6 +94,7 @@ var torrentStream = function(link, opts, cb) {
 	var rechokeOptimisticTime = 0;
 	var rechokeIntervalId;
 
+	engine.infoHash = infoHash;
 	engine.path = opts.path;
 	engine.files = [];
 	engine.selection = [];
@@ -123,20 +105,7 @@ var torrentStream = function(link, opts, cb) {
 	engine.swarm = swarm;
 
 	if (opts.dht !== false) {
-		var table = dht();
-		engine.dht = table;
-		table.setInfoHash(infoHash);
-		if (table.socket) table.socket.on('error', noop);
-		table.on('peer', function(addr) {
-			var blockedReason = null;
-			if (opts.blocklist.length && (blockedReason = isPeerBlocked(addr, opts.blocklist))) {
-				engine.emit('blocked-peer', addr, blockedReason);
-			} else {
-				engine.emit('peer', addr);
-				engine.connect(addr);
-			}
-		});
-		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
+		engine.dht = dht(engine, opts);
 	}
 
 	var createTracker = function(torrent) {
