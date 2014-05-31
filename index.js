@@ -11,7 +11,7 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
-var tracker = require('bittorrent-tracker');
+var tracker = require('./tracker');
 var encode = require('./encode-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
@@ -67,7 +67,6 @@ var torrentStream = function(link, opts, cb) {
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
 	if (!opts.name) opts.name = 'torrent-stream';
-	if (!opts.blocklist) opts.blocklist = [];
 
 	var usingTmp = false;
 	var destroyed = false;
@@ -108,28 +107,7 @@ var torrentStream = function(link, opts, cb) {
 		engine.dht = dht(engine, opts);
 	}
 
-	var createTracker = function(torrent) {
-		if (opts.trackers) {
-			torrent = Object.create(torrent);
-			var trackers = (opts.tracker !== false) && torrent.announce ? torrent.announce : [];
-			torrent.announce = trackers.concat(opts.trackers);
-		} else if (opts.tracker === false) {
-			return;
-		}
-
-		if (!torrent.announce || !torrent.announce.length) return;
-
-		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
-
-		tr.on('peer', function(addr) {
-			engine.connect(addr);
-		});
-
-		tr.on('error', noop);
-
-		tr.start();
-		return tr;
-	};
+	var createTracker = tracker(engine, opts);
 
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
