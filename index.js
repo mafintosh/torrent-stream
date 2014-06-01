@@ -11,13 +11,14 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
-var tracker = require('./tracker');
-var encode = require('./encode-metadata');
-var exchangeMetadata = require('./exchange-metadata');
-var storage = require('./storage');
-var fileStream = require('./file-stream');
-var piece = require('./piece');
-var dht = require('./dht');
+
+var tracker = require('./lib/tracker');
+var encode = require('./lib/encode-metadata');
+var exchangeMetadata = require('./lib/exchange-metadata');
+var storage = require('./lib/storage');
+var fileStream = require('./lib/file-stream');
+var piece = require('./lib/piece');
+var dht = require('./lib/dht');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
