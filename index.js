@@ -11,33 +11,24 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
-var ip = require('ip');
-var dht = require('bittorrent-dht');
-var tracker = require('bittorrent-tracker');
+var tracker = require('./tracker');
 var encode = require('./encode-metadata');
+var exchangeMetadata = require('./exchange-metadata');
 var storage = require('./storage');
 var fileStream = require('./file-stream');
 var piece = require('./piece');
+var dht = require('./dht');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
-var DHT_SIZE = 10000;
 
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
 
-var METADATA_BLOCK_SIZE = 1 << 14;
-var METADATA_MAX_SIZE = 1 << 22;
 var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
-
-var EXTENSIONS = {
-	m: {
-		ut_metadata: 1
-	}
-};
 
 var noop = function() {};
 
@@ -57,23 +48,6 @@ var toNumber = function(val) {
 	return val === true ? 1 : (val || 0);
 };
 
-var isPeerBlocked = function(addr, blocklist) {
-	var blockedReason = null;
-	// TODO: support IPv6
-	var searchAddr = ip.toLong(addr);
-	for (var i = 0, l = blocklist.length; i < l; i++) {
-		var block = blocklist[i];
-		if (!block.startAddress || !block.endAddress) continue;
-		var startAddress = ip.toLong(block.startAddress);
-		var endAddress = ip.toLong(block.endAddress);
-		if (searchAddr >= startAddress && searchAddr <= endAddress) {
-			blockedReason = block.reason || true;
-			break;
-		}
-	}
-	return blockedReason;
-};
-
 var torrentStream = function(link, opts, cb) {
 	if (typeof opts === 'function') return torrentStream(link, null, opts);
 	link = typeof link === 'string' ? magnet(link) : Buffer.isBuffer(link) ? parseTorrent(link) : link;
@@ -86,7 +60,6 @@ var torrentStream = function(link, opts, cb) {
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
 	if (!opts.name) opts.name = 'torrent-stream';
-	if (!opts.blocklist) opts.blocklist = [];
 
 	var usingTmp = false;
 	var destroyed = false;
@@ -104,8 +77,6 @@ var torrentStream = function(link, opts, cb) {
 
 	var wires = swarm.wires;
 	var critical = [];
-	var metadataPieces = [];
-	var metadata = null;
 	var refresh = noop;
 
 	var rechokeSlots = (opts.uploads === false || opts.uploads === 0) ? 0 : (+opts.uploads || 10);
@@ -113,6 +84,8 @@ var torrentStream = function(link, opts, cb) {
 	var rechokeOptimisticTime = 0;
 	var rechokeIntervalId;
 
+	engine.infoHash = infoHash;
+	engine.metadata = null;
 	engine.path = opts.path;
 	engine.files = [];
 	engine.selection = [];
@@ -123,44 +96,10 @@ var torrentStream = function(link, opts, cb) {
 	engine.swarm = swarm;
 
 	if (opts.dht !== false) {
-		var table = dht();
-		engine.dht = table;
-		table.setInfoHash(infoHash);
-		if (table.socket) table.socket.on('error', noop);
-		table.on('peer', function(addr) {
-			var blockedReason = null;
-			if (opts.blocklist.length && (blockedReason = isPeerBlocked(addr, opts.blocklist))) {
-				engine.emit('blocked-peer', addr, blockedReason);
-			} else {
-				engine.emit('peer', addr);
-				engine.connect(addr);
-			}
-		});
-		table.findPeers(opts.dht || DHT_SIZE); // TODO: be smarter about finding peers
+		engine.dht = dht(engine, opts);
 	}
 
-	var createTracker = function(torrent) {
-		if (opts.trackers) {
-			torrent = Object.create(torrent);
-			var trackers = (opts.tracker !== false) && torrent.announce ? torrent.announce : [];
-			torrent.announce = trackers.concat(opts.trackers);
-		} else if (opts.tracker === false) {
-			return;
-		}
-
-		if (!torrent.announce || !torrent.announce.length) return;
-
-		var tr = new tracker.Client(new Buffer(opts.id), engine.port || DEFAULT_PORT, torrent);
-
-		tr.on('peer', function(addr) {
-			engine.connect(addr);
-		});
-
-		tr.on('error', noop);
-
-		tr.start();
-		return tr;
-	};
+	var createTracker = tracker(engine, opts);
 
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
@@ -590,91 +529,36 @@ var torrentStream = function(link, opts, cb) {
 		loop(0);
 	};
 
+	var exchange = exchangeMetadata(engine, function (metadata) {
+		var result = {};
+		result.info = bncode.decode(metadata);
+		result['announce-list'] = [];
+
+		var buf = bncode.encode(result);
+		ontorrent(parseTorrent(buf));
+
+		mkdirp(path.dirname(torrentPath), function(err) {
+			if (err) return engine.emit('error', err);
+			fs.writeFile(torrentPath, buf, function(err) {
+				if (err) engine.emit('error', err);
+			});
+		});
+	});
 
 	swarm.on('wire', function(wire) {
 		engine.emit('wire', wire);
 
-		wire.once('extended', function(id, handshake) {
-			handshake = bncode.decode(handshake);
-
-			if (id || !handshake.m || handshake.m.ut_metadata === undefined) return;
-
-			var channel = handshake.m.ut_metadata;
-			var size = handshake.metadata_size;
-
-			wire.on('extended', function(id, ext) {
-				if (id !== EXTENSIONS.m.ut_metadata) return;
-
-				try {
-					var delimiter = ext.toString('ascii').indexOf('ee');
-					var message = bncode.decode(ext.slice(0, delimiter === -1 ? ext.length : delimiter+2));
-					var piece = message.piece;
-				} catch (err) {
-					return;
-				}
-
-				if (piece < 0) return;
-				if (message.msg_type === 2) return;
-
-				if (message.msg_type === 0) {
-					if (!metadata) return wire.extended(channel, {msg_type:2, piece:piece});
-					var offset = piece * METADATA_BLOCK_SIZE;
-					var buf = metadata.slice(offset, offset + METADATA_BLOCK_SIZE);
-					wire.extended(channel, Buffer.concat([bncode.encode({msg_type:1, piece:piece}), buf]));
-					return;
-				}
-
-				if (message.msg_type === 1 && !metadata) {
-					metadataPieces[piece] = ext.slice(delimiter+2);
-					for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
-						if (!metadataPieces[i]) return;
-					}
-
-					metadata = Buffer.concat(metadataPieces);
-
-					if (infoHash !== sha1(metadata)) {
-						metadataPieces = [];
-						metadata = null;
-						return;
-					}
-
-					var result = {};
-					result.info = bncode.decode(metadata);
-					result['announce-list'] = [];
-
-					var buf = bncode.encode(result);
-					ontorrent(parseTorrent(buf));
-
-					mkdirp(path.dirname(torrentPath), function(err) {
-						if (err) return engine.emit('error', err);
-						fs.writeFile(torrentPath, buf, function(err) {
-							if (err) engine.emit('error', err);
-						});
-					});
-				}
-			});
-
-			if (size > METADATA_MAX_SIZE) return;
-			if (!size || metadata) return;
-
-			for (var i = 0; i * METADATA_BLOCK_SIZE < size; i++) {
-				if (metadataPieces[i]) continue;
-				wire.extended(channel, {msg_type:0, piece:i});
-			}
-		});
+		exchange(wire);
 
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
-		if (!wire.peerExtensions.extended) return;
-
-		wire.extended(0, metadata ? {m:{ut_metadata:1}, metadata_size:metadata.length} : {m:{ut_metadata:1}});
 	});
 
 	swarm.pause();
 
 	if (link.files) {
-		metadata = encode(link);
+		engine.metadata = encode(link);
 		swarm.resume();
-		if (metadata) ontorrent(link);
+		if (engine.metadata) ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
@@ -693,8 +577,8 @@ var torrentStream = function(link, opts, cb) {
 				return;
 			}
 			var torrent = parseTorrent(buf);
-			metadata = encode(torrent);
-			if (metadata) ontorrent(torrent);
+			engine.metadata = encode(torrent);
+			if (engine.metadata) ontorrent(torrent);
 		});
 	}
 
