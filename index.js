@@ -12,13 +12,13 @@ var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
 
-var tracker = require('./lib/tracker');
+var peerDiscovery = require('./lib/peer-discovery');
+var blocklist = require('./lib/blocklist');
 var encode = require('./lib/encode-metadata');
 var exchangeMetadata = require('./lib/exchange-metadata');
 var storage = require('./lib/storage');
 var fileStream = require('./lib/file-stream');
 var piece = require('./lib/piece');
-var dht = require('./lib/dht');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
@@ -96,11 +96,18 @@ var torrentStream = function(link, opts, cb) {
 	engine.store = null;
 	engine.swarm = swarm;
 
-	if (opts.dht !== false) {
-		engine.dht = dht(engine, opts);
-	}
+	var discovery = peerDiscovery(opts);
+	var isPeerBlocked = blocklist(opts.blocklist);
 
-	var createTracker = tracker(engine, opts);
+	discovery.on('peer', function(addr) {
+		var blockedReason = null;
+		if (blockedReason = isPeerBlocked(addr)) {
+			engine.emit('blocked-peer', addr, blockedReason);
+		} else {
+			engine.emit('peer', addr);
+			engine.connect(addr);
+		}
+	});
 
 	var ontorrent = function(torrent) {
 		engine.store = storage(opts.path, torrent);
@@ -117,20 +124,7 @@ var torrentStream = function(link, opts, cb) {
 			return [];
 		});
 
-		if (engine.tracker) {
-			/*
-			If we have tracker then it had been created before we got infoDictionary.
-			So client do not know torrent length and can not report right information about uploads
-			*/
-			engine.tracker.torrentLength = torrent.length;
-		} else {
-			process.nextTick(function() {
-				// let execute engine.listen() before createTracker()
-				if (!engine.tracker) {
-					engine.tracker = createTracker(torrent);
-				}
-			});
-		}
+		discovery.setTorrent(torrent);
 
 		engine.files = torrent.files.map(function(file) {
 			file = Object.create(file);
@@ -565,16 +559,9 @@ var torrentStream = function(link, opts, cb) {
 			if (destroyed) return;
 			swarm.resume();
 			if (!buf) {
-				/* 
-				We know only infoHash here, not full infoDictionary.
-				But infoHash is enough to connect to trackers and get peers.
-				*/
-				process.nextTick(function() {
-					// let execute engine.listen() before createTracker()
-					if (!engine.tracker) {
-						engine.tracker = createTracker(link);
-					}
-				});
+				// We know only infoHash here, not full infoDictionary.
+				// But infoHash is enough to connect to trackers and get peers.
+				discovery.setTorrent(link);
 				return;
 			}
 			var torrent = parseTorrent(buf);
@@ -660,8 +647,7 @@ var torrentStream = function(link, opts, cb) {
 		destroyed = true;
 		swarm.destroy();
 		clearInterval(rechokeIntervalId);
-		if (engine.tracker) engine.tracker.stop();
-		if (engine.dht) engine.dht.close();
+		discovery.stop();
 		if (engine.store) {
 			engine.store.close(cb);
 		} else if (cb) {
@@ -673,9 +659,7 @@ var torrentStream = function(link, opts, cb) {
 		if (typeof port === 'function') return engine.listen(0, port);
 		engine.port = port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
-
-		if (engine.tracker) engine.tracker.stop();
-		if (engine.torrent) engine.tracker = createTracker(engine.torrent);
+		discovery.updatePort(engine.port);
 	};
 
 	return engine;
