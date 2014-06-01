@@ -100,8 +100,8 @@ var torrentStream = function(link, opts, cb) {
 	var isPeerBlocked = blocklist(opts.blocklist);
 
 	discovery.on('peer', function(addr) {
-		var blockedReason = null;
-		if (blockedReason = isPeerBlocked(addr)) {
+		var blockedReason = isPeerBlocked(addr);
+		if (blockedReason) {
 			engine.emit('blocked-peer', addr, blockedReason);
 		} else {
 			engine.emit('peer', addr);
@@ -431,11 +431,11 @@ var torrentStream = function(link, opts, cb) {
 
 		var rechokeSort = function(a, b) {
 			// Prefer higher download speed
-			if (a.downSpeed != b.downSpeed) return a.downSpeed > b.downSpeed ? -1 : 1;
+			if (a.downSpeed !== b.downSpeed) return a.downSpeed > b.downSpeed ? -1 : 1;
 			// Prefer higher upload speed
-			if (a.upSpeed != b.upSpeed) return a.upSpeed > b.upSpeed ? -1 : 1;
+			if (a.upSpeed !== b.upSpeed) return a.upSpeed > b.upSpeed ? -1 : 1;
 			// Prefer unchoked
-			if (a.wasChoked != b.wasChoked) return a.wasChoked ? 1 : -1;
+			if (a.wasChoked !== b.wasChoked) return a.wasChoked ? 1 : -1;
 			// Random order
 			return a.salt - b.salt;
 		};
@@ -483,7 +483,7 @@ var torrentStream = function(link, opts, cb) {
 			}
 
 			peers.forEach(function(peer) {
-				if (peer.wasChoked != peer.isChoked) {
+				if (peer.wasChoked !== peer.isChoked) {
 					if (peer.isChoked) peer.wire.choke();
 					else peer.wire.unchoke();
 				}
@@ -524,7 +524,7 @@ var torrentStream = function(link, opts, cb) {
 		loop(0);
 	};
 
-	var exchange = exchangeMetadata(engine, function (metadata) {
+	var exchange = exchangeMetadata(engine, function(metadata) {
 		var result = {};
 		result.info = bncode.decode(metadata);
 		result['announce-list'] = [];
@@ -630,7 +630,7 @@ var torrentStream = function(link, opts, cb) {
 	};
 
 	engine.remove = function(keepPieces, cb) {
-		if (typeof keepPieces === "function") {
+		if (typeof keepPieces === 'function') {
 			cb = keepPieces;
 			keepPieces = false;
 		}
