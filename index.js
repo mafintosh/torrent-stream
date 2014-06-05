@@ -97,7 +97,9 @@ var torrentStream = function(link, opts, cb) {
 	engine.swarm = swarm;
 
 	var discovery = peerDiscovery(opts);
-	var isPeerBlocked = blocklist(opts.blocklist);
+
+	var blocked = opts.blocklist || [];
+	var isPeerBlocked = blocklist(blocked);
 
 	discovery.on('peer', function(addr) {
 		var blockedReason = isPeerBlocked(addr);
@@ -278,7 +280,8 @@ var torrentStream = function(link, opts, cb) {
 
 				if (sha1(buffer) !== torrent.pieces[index]) {
 					pieces[index] = piece(p.length);
-					engine.emit('invalid-piece', index, buffer);
+					engine.emit('invalid-piece', index, buffer, wire);
+					engine.block(wire.peerAddress);
 					onupdatetick();
 					return;
 				}
@@ -609,6 +612,11 @@ var torrentStream = function(link, opts, cb) {
 
 	engine.disconnect = function(addr) {
 		swarm.remove(addr);
+	};
+
+	engine.block = function(addr) {
+		blocked.push(addr);
+		engine.disconnect(addr);
 	};
 
 	var removeTorrent = function(cb) {
