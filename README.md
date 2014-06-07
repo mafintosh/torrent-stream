@@ -67,9 +67,10 @@ Create a new engine instance. Options can contain the following
 	trackers: [
 	    'udp://tracker.openbittorrent.com:80',
 	    'udp://tracker.ccc.de:80'
-	]
+	],
 	                      // Allows to declare additional custom trackers to use
 	                      // Defaults to empty
+	storage: myStorage()  // Use a custom storage backend rather than the default disk-backed one
 }
 ```
 
