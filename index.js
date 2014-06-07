@@ -110,7 +110,7 @@ var torrentStream = function(link, opts, cb) {
 	});
 
 	var ontorrent = function(torrent) {
-		engine.store = storage(opts.path, torrent);
+		engine.store = (opts.storage || storage(opts.path))(torrent, opts);
 		engine.torrent = torrent;
 		engine.bitfield = bitfield(torrent.pieces.length);
 
