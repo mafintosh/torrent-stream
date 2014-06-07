@@ -20,7 +20,7 @@ fixture.listen(10000);
 test('fixture can verify the torrent', function(t) {
 	t.plan(2);
 	fixture.on('ready', function() {
-		t.ok(true, 'should be ready');
+		t.ok(true, 'seed should be ready');
 		t.deepEqual(fixture.bitfield.buffer.toString('hex'), 'c0', 'should verify all the pieces');
 	});
 });
@@ -29,7 +29,7 @@ test('peer should be blocked on bad piece', function(t) {
 	t.plan(5);
 
 	fixture.store.write(0, new Buffer(1 << 14), function() {
-		t.ok(true, 'should be written');
+		t.ok(true, 'bad piece should be written');
 
 		var engine = torrents(torrent, {
 			dht: false,
@@ -40,19 +40,20 @@ test('peer should be blocked on bad piece', function(t) {
 		engine.on('blocked-peer', function(addr, reason) {
 			t.equal(addr, '127.0.0.1:10000');
 			t.equal(reason, 'Blocked');
-			engine.destroy(t.ok.bind(t, true, 'should be destroyed'));
+			engine.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
 		});
 
 		engine.connect('127.0.0.1:10000');
 
 		engine.on('ready', function() {
-			t.ok(true, 'should be ready');
+			t.ok(true, 'peer should be ready');
 			engine.files[0].select();
+			fixture.swarm.wires[0].unchoke();
 		});
 	});
 });
 
 test('cleanup', function(t) {
 	t.plan(1);
-	fixture.destroy(t.ok.bind(t, true, 'should be destroyed'));
+	fixture.destroy(t.ok.bind(t, true, 'seed should be destroyed'));
 });
