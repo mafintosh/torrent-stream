@@ -26,6 +26,9 @@ var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
 
+var BAD_PIECE_STRIKES_MAX = 3;
+var BAD_PIECE_STRIKES_DURATION = 120000; // 2 minutes
+
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
 
@@ -276,13 +279,28 @@ var torrentStream = function(link, opts, cb) {
 
 				if (!p.set(reservation, block, wire)) return onupdatetick();
 
+				var sources = p.sources;
 				var buffer = p.flush();
 
 				if (sha1(buffer) !== torrent.pieces[index]) {
 					pieces[index] = piece(p.length);
-					engine.emit('invalid-piece', index, buffer, wire);
-					engine.block(wire.peerAddress);
+					engine.emit('invalid-piece', index, buffer);
 					onupdatetick();
+
+					sources.forEach(function(wire) {
+						var now = +new Date;
+
+						wire.badPieceStrikes = wire.badPieceStrikes.filter(function(strike) {
+							return (now - strike) < BAD_PIECE_STRIKES_DURATION;
+						});
+
+						wire.badPieceStrikes.push(now);
+
+						if (wire.badPieceStrikes.length > BAD_PIECE_STRIKES_MAX) {
+							engine.block(wire.peerAddress);
+						}
+					});
+
 					return;
 				}
 
@@ -428,6 +446,8 @@ var torrentStream = function(link, opts, cb) {
 			wire.on('bitfield', checkseeder);
 			wire.on('have', checkseeder);
 			checkseeder();
+
+			wire.badPieceStrikes = [];
 
 			id = setTimeout(onchoketimeout, timeout);
 		};
