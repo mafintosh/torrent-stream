@@ -102,23 +102,6 @@ test('peer should connect to an alternate tracker', function (t) {
 	});
 });
 
-test('peer should connect to public trackers', function (t) {
-	t.plan(2);
-	var engine = torrents('magnet:?xt=urn:btih:2e0ba00b6ae7d68d03a61e682fe85e6964796b27',
-		{ dht: false, tmp: tmpPath, trackers: [
-			'udp://tracker.publicbt.com:80',
-			'udp://tracker.openbittorrent.com:80',
-			'udp://tracker.ccc.de:80',
-			'udp://tracker.istole.it:80'
-		] });
-	engine.once('ready', function () {
-		t.ok(true, 'should be ready');
-		engine.destroy(function () {
-			engine.remove(t.ok.bind(t, true, 'should be destroyed'));
-		});
-	});
-});
-
 test('cleanup', function (t) {
 	t.plan(2);
 	fixture.destroy(t.ok.bind(t, true, 'should be destroyed'));
