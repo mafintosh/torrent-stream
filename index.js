@@ -274,7 +274,7 @@ var torrentStream = function(link, opts, cb) {
 					return;
 				}
 
-				if (!p.set(reservation, block)) return onupdatetick();
+				if (!p.set(reservation, block, wire)) return onupdatetick();
 
 				var buffer = p.flush();
 
