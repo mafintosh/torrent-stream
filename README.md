@@ -103,6 +103,10 @@ Connect to a peer manually
 
 Disconnect from a peer manually
 
+#### `engine.block('127.0.0.1:6881')`
+
+Disconnect from a peer and add it to the blocklist, preventing any other connection to it
+
 #### `engine.remove([keep-pieces], cb)`
 
 Completely remove all saved data for this torrent.

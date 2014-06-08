@@ -26,6 +26,9 @@ var REQUEST_TIMEOUT = 30000;
 var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
 var DEFAULT_PORT = 6881;
 
+var BAD_PIECE_STRIKES_MAX = 3;
+var BAD_PIECE_STRIKES_DURATION = 120000; // 2 minutes
+
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
 
@@ -97,7 +100,9 @@ var torrentStream = function(link, opts, cb) {
 	engine.swarm = swarm;
 
 	var discovery = peerDiscovery(opts);
-	var isPeerBlocked = blocklist(opts.blocklist);
+
+	var blocked = opts.blocklist || [];
+	var isPeerBlocked = blocklist(blocked);
 
 	discovery.on('peer', function(addr) {
 		var blockedReason = isPeerBlocked(addr);
@@ -272,14 +277,30 @@ var torrentStream = function(link, opts, cb) {
 					return;
 				}
 
-				if (!p.set(reservation, block)) return onupdatetick();
+				if (!p.set(reservation, block, wire)) return onupdatetick();
 
+				var sources = p.sources;
 				var buffer = p.flush();
 
 				if (sha1(buffer) !== torrent.pieces[index]) {
 					pieces[index] = piece(p.length);
 					engine.emit('invalid-piece', index, buffer);
 					onupdatetick();
+
+					sources.forEach(function(wire) {
+						var now = +new Date;
+
+						wire.badPieceStrikes = wire.badPieceStrikes.filter(function(strike) {
+							return (now - strike) < BAD_PIECE_STRIKES_DURATION;
+						});
+
+						wire.badPieceStrikes.push(now);
+
+						if (wire.badPieceStrikes.length > BAD_PIECE_STRIKES_MAX) {
+							engine.block(wire.peerAddress);
+						}
+					});
+
 					return;
 				}
 
@@ -425,6 +446,8 @@ var torrentStream = function(link, opts, cb) {
 			wire.on('bitfield', checkseeder);
 			wire.on('have', checkseeder);
 			checkseeder();
+
+			wire.badPieceStrikes = [];
 
 			id = setTimeout(onchoketimeout, timeout);
 		};
@@ -609,6 +632,13 @@ var torrentStream = function(link, opts, cb) {
 
 	engine.disconnect = function(addr) {
 		swarm.remove(addr);
+	};
+
+	engine.block = function(addr) {
+		var ipv4 = addr.split(':')[0];
+		blocked.push({ startAddress: ipv4, endAddress: ipv4, reason: 'Blocked' });
+		engine.disconnect(addr);
+		engine.emit('blocked-peer', addr, 'Blocked');
 	};
 
 	var removeTorrent = function(cb) {
