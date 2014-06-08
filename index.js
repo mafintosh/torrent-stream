@@ -635,7 +635,8 @@ var torrentStream = function(link, opts, cb) {
 	};
 
 	engine.block = function(addr) {
-		blocked.push(addr);
+		var ipv4 = addr.split(':')[0];
+		blocked.push({ startAddress: ipv4, endAddress: ipv4, reason: 'Blocked' });
 		engine.disconnect(addr);
 		engine.emit('blocked-peer', addr, 'Blocked');
 	};
