@@ -288,7 +288,7 @@ var torrentStream = function(link, opts, cb) {
 					onupdatetick();
 
 					sources.forEach(function(wire) {
-						var now = +new Date;
+						var now = Date.now();
 
 						wire.badPieceStrikes = wire.badPieceStrikes.filter(function(strike) {
 							return (now - strike) < BAD_PIECE_STRIKES_DURATION;
