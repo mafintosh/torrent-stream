@@ -35,30 +35,28 @@ test('seed should connect to the tracker', function (t) {
 });
 
 test('peer should block the seed via blocklist', function (t) {
-	t.plan(4);
+	t.plan(3);
 	var peer = torrents(torrent, {
 		dht: false,
-		blocklist: [{ startAddress: '127.0.0.1', endAddress: '127.0.0.1', reason: 'Testing blocklist' }]
+		blocklist: [{ start: '127.0.0.1', end: '127.0.0.1' }]
 	});
 	peer.once('ready', function () {
 		t.ok(true, 'peer should be ready');
-		peer.once('blocked-peer', function(addr, reason) {
+		peer.once('blocked-peer', function(addr) {
 			t.equal(addr, '127.0.0.1:6882');
-			t.equal(reason, 'Testing blocklist');
 			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
 		});
 	});
 });
 
 test('peer should block the seed via explicit block', function (t) {
-	t.plan(4);
+	t.plan(3);
 	var peer = torrents(torrent, { dht: false });
 	peer.block('127.0.0.1:6882');
 	peer.once('ready', function () {
 		t.ok(true, 'peer should be ready');
-		peer.once('blocked-peer', function(addr, reason) {
+		peer.once('blocked-peer', function(addr) {
 			t.equal(addr, '127.0.0.1:6882');
-			t.equal(reason, 'Blocked');
 			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
 		});
 	});
