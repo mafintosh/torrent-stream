@@ -26,7 +26,7 @@ test('fixture can verify the torrent', function(t) {
 });
 
 test('peer should be blocked on bad piece', function(t) {
-	t.plan(5);
+	t.plan(4);
 
 	fixture.store.write(0, new Buffer(1 << 14), function() {
 		t.ok(true, 'bad piece should be written');
@@ -37,9 +37,8 @@ test('peer should be blocked on bad piece', function(t) {
 			tmp: tmpPath
 		});
 
-		engine.on('blocked-peer', function(addr, reason) {
+		engine.on('blocking', function(addr) {
 			t.equal(addr, '127.0.0.1:10000');
-			t.equal(reason, 'Blocked');
 			engine.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
 		});
 

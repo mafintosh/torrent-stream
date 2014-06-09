@@ -100,14 +100,11 @@ var torrentStream = function(link, opts, cb) {
 	engine.swarm = swarm;
 
 	var discovery = peerDiscovery(opts);
-
-	var blocked = opts.blocklist || [];
-	var isPeerBlocked = blocklist(blocked);
+	var blocked = blocklist(opts.blocklist);
 
 	discovery.on('peer', function(addr) {
-		var blockedReason = isPeerBlocked(addr);
-		if (blockedReason) {
-			engine.emit('blocked-peer', addr, blockedReason);
+		if (blocked.contains(addr.split(":")[0])) {
+			engine.emit('blocked-peer', addr);
 		} else {
 			engine.emit('peer', addr);
 			engine.connect(addr);
@@ -635,10 +632,9 @@ var torrentStream = function(link, opts, cb) {
 	};
 
 	engine.block = function(addr) {
-		var ipv4 = addr.split(':')[0];
-		blocked.push({ startAddress: ipv4, endAddress: ipv4, reason: 'Blocked' });
+		blocked.add(addr.split(':')[0]);
 		engine.disconnect(addr);
-		engine.emit('blocked-peer', addr, 'Blocked');
+		engine.emit('blocking', addr);
 	};
 
 	var removeTorrent = function(cb) {
