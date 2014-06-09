@@ -103,9 +103,8 @@ var torrentStream = function(link, opts, cb) {
 	var blocked = blocklist(opts.blocklist);
 
 	discovery.on('peer', function(addr) {
-		var blockedReason = blocked.search(addr.split(":")[0]);
-		if (blockedReason) {
-			engine.emit('blocked-peer', addr, blockedReason);
+		if (blocked.contains(addr.split(":")[0])) {
+			engine.emit('blocked-peer', addr);
 		} else {
 			engine.emit('peer', addr);
 			engine.connect(addr);
@@ -633,8 +632,7 @@ var torrentStream = function(link, opts, cb) {
 	};
 
 	engine.block = function(addr) {
-		var ipv4 = addr.split(':')[0];
-		blocked.add(ipv4, ipv4, 'Blocked');
+		blocked.add(addr.split(':')[0]);
 		engine.disconnect(addr);
 		engine.emit('blocking', addr);
 	};
