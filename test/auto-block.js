@@ -44,10 +44,13 @@ test('peer should be blocked on bad piece', function(t) {
 
 		engine.connect('127.0.0.1:10000');
 
+		engine.swarm.once('wire', function() {
+			fixture.swarm.wires[0].unchoke();
+		});
+
 		engine.on('ready', function() {
 			t.ok(true, 'peer should be ready');
 			engine.files[0].select();
-			fixture.swarm.wires[0].unchoke();
 		});
 	});
 });
