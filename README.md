@@ -60,8 +60,8 @@ Create a new engine instance. Options can contain the following
 	path: '/tmp/my-file', // Where to save the files. Overrides `tmp`.
 	verify: true,         // Verify previously stored data before starting
 	                      // Defaults to true
-	dht: 10000,           // Use DHT to initialize the swarm.
-	                      // Defaults to 10000 peers, set false to disable
+	dht: true,            // Whether or not to use DHT to initialize the swarm.
+	                      // Defaults to true
 	tracker: true,        // Whether or not to use trackers from torrent file or magnet link
 	                      // Defaults to true
 	trackers: [
