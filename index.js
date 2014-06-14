@@ -14,7 +14,6 @@ var eos = require('end-of-stream');
 
 var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('./lib/blocklist');
-var encode = require('./lib/encode-metadata');
 var exchangeMetadata = require('./lib/exchange-metadata');
 var storage = require('./lib/storage');
 var fileStream = require('./lib/file-stream');
@@ -54,7 +53,17 @@ var toNumber = function(val) {
 
 var torrentStream = function(link, opts, cb) {
 	if (typeof opts === 'function') return torrentStream(link, null, opts);
-	link = typeof link === 'string' ? magnet(link) : Buffer.isBuffer(link) ? parseTorrent(link) : link;
+
+	var metadata = null
+
+	if (Buffer.isBuffer(link)) {
+		metadata = bncode.encode(bncode.decode(link).info)
+		link = parseTorrent(link)
+	} else if (typeof link === 'string') {
+		link = magnet(link)
+	} else {
+		link = null
+	}
 
 	if (!link || !link.infoHash) throw new Error('You must pass a valid torrent or magnet link');
 
@@ -89,7 +98,7 @@ var torrentStream = function(link, opts, cb) {
 	var rechokeIntervalId;
 
 	engine.infoHash = infoHash;
-	engine.metadata = null;
+	engine.metadata = metadata;
 	engine.path = opts.path;
 	engine.files = [];
 	engine.selection = [];
@@ -545,11 +554,11 @@ var torrentStream = function(link, opts, cb) {
 	};
 
 	var exchange = exchangeMetadata(engine, function(metadata) {
-		var result = {};
-		result.info = bncode.decode(metadata);
-		result['announce-list'] = [];
+		var buf = bncode.encode({
+			info: bncode.decode(metadata),
+			'announce-list': []
+		});
 
-		var buf = bncode.encode(result);
 		ontorrent(parseTorrent(buf));
 
 		mkdirp(path.dirname(torrentPath), function(err) {
@@ -562,31 +571,31 @@ var torrentStream = function(link, opts, cb) {
 
 	swarm.on('wire', function(wire) {
 		engine.emit('wire', wire);
-
 		exchange(wire);
-
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
 	});
 
 	swarm.pause();
 
 	if (link.files) {
-		engine.metadata = encode(link);
 		swarm.resume();
-		if (engine.metadata) ontorrent(link);
+		ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
 			swarm.resume();
-			if (!buf) {
-				// We know only infoHash here, not full infoDictionary.
-				// But infoHash is enough to connect to trackers and get peers.
-				discovery.setTorrent(link);
-				return;
-			}
+
+			// We know only infoHash here, not full infoDictionary.
+			// But infoHash is enough to connect to trackers and get peers.
+			if (!buf) return discovery.setTorrent(link);
+
 			var torrent = parseTorrent(buf);
-			engine.metadata = encode(torrent);
-			if (engine.metadata) ontorrent(torrent);
+
+			// Bad cache file - fetch it again
+			if (torrent.infoHash !== link.infoHash) return discovery.setTorrent(link);
+
+			engine.metadata = bncode.encode(bncode.decode(buf).info);
+			ontorrent(torrent);
 		});
 	}
 
