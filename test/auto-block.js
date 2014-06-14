@@ -2,9 +2,8 @@ var test = require('tap').test;
 var torrents = require('../');
 var fs = require('fs-extra');
 var path = require('path');
-var parseTorrent = require('parse-torrent');
 
-var torrent = parseTorrent(fs.readFileSync(path.join(__dirname, 'data', 'test.torrent')));
+var torrent = fs.readFileSync(path.join(__dirname, 'data', 'test.torrent'));
 var tmpPath = path.join(__dirname, '..', 'torrents', 'test');
 fs.removeSync(tmpPath);
 fs.copySync(path.join(__dirname, 'data'), tmpPath);

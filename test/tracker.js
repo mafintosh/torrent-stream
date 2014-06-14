@@ -3,11 +3,10 @@ var torrents = require('../');
 var fs = require('fs');
 var path = require('path');
 var rimraf = require('rimraf');
-var parseTorrent = require('parse-torrent');
 var tracker = require('bittorrent-tracker');
 var server = new tracker.Server();
 
-var torrent = parseTorrent(fs.readFileSync(path.join(__dirname, 'data', 'test.torrent')));
+var torrent = fs.readFileSync(path.join(__dirname, 'data', 'test.torrent'));
 var tmpPath = path.join(__dirname, '..', 'torrents', 'test');
 rimraf.sync(tmpPath);
 
