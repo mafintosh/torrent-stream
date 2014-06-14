@@ -54,15 +54,15 @@ var toNumber = function(val) {
 var torrentStream = function(link, opts, cb) {
 	if (typeof opts === 'function') return torrentStream(link, null, opts);
 
-	var metadata = null
+	var metadata = null;
 
 	if (Buffer.isBuffer(link)) {
-		metadata = bncode.encode(bncode.decode(link).info)
-		link = parseTorrent(link)
+		metadata = bncode.encode(bncode.decode(link).info);
+		link = parseTorrent(link);
 	} else if (typeof link === 'string') {
-		link = magnet(link)
+		link = magnet(link);
 	} else {
-		link = null
+		link = null;
 	}
 
 	if (!link || !link.infoHash) throw new Error('You must pass a valid torrent or magnet link');
