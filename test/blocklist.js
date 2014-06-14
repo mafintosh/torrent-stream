@@ -13,13 +13,13 @@ rimraf.sync(tmpPath);
 
 var seed;
 
-server.on('error', function () {
+server.on('error', function() {
 });
 
-test('seed should connect to the tracker', function (t) {
+test('seed should connect to the tracker', function(t) {
 	t.plan(3);
 
-	server.once('listening', function () {
+	server.once('listening', function() {
 		t.ok(true, 'tracker should be listening');
 		seed = torrents(torrent, {
 			dht: false,
@@ -28,19 +28,21 @@ test('seed should connect to the tracker', function (t) {
 		seed.listen(6882);
 		seed.once('ready', t.ok.bind(t, true, 'should be ready'));
 	});
-	server.once('start', function (addr) {
+	server.once('start', function(addr) {
 		t.equal(addr, '127.0.0.1:6882');
 	});
 	server.listen(12345);
 });
 
-test('peer should block the seed via blocklist', function (t) {
+test('peer should block the seed via blocklist', function(t) {
 	t.plan(3);
 	var peer = torrents(torrent, {
 		dht: false,
-		blocklist: [{ start: '127.0.0.1', end: '127.0.0.1' }]
+		blocklist: [
+			{ start: '127.0.0.1', end: '127.0.0.1' }
+		]
 	});
-	peer.once('ready', function () {
+	peer.once('ready', function() {
 		t.ok(true, 'peer should be ready');
 		peer.once('blocked-peer', function(addr) {
 			t.equal(addr, '127.0.0.1:6882');
@@ -49,11 +51,11 @@ test('peer should block the seed via blocklist', function (t) {
 	});
 });
 
-test('peer should block the seed via explicit block', function (t) {
+test('peer should block the seed via explicit block', function(t) {
 	t.plan(3);
 	var peer = torrents(torrent, { dht: false });
 	peer.block('127.0.0.1:6882');
-	peer.once('ready', function () {
+	peer.once('ready', function() {
 		t.ok(true, 'peer should be ready');
 		peer.once('blocked-peer', function(addr) {
 			t.equal(addr, '127.0.0.1:6882');
@@ -62,7 +64,7 @@ test('peer should block the seed via explicit block', function (t) {
 	});
 });
 
-test('cleanup', function (t) {
+test('cleanup', function(t) {
 	t.plan(2);
 	seed.destroy(t.ok.bind(t, true, 'seed should be destroyed'));
 	server.close(t.ok.bind(t, true, 'tracker should be closed'));

@@ -12,18 +12,18 @@ var fixture = torrents(torrent, {
 	path: path.join(__dirname, 'data')
 });
 
-test('fixture can verify the torrent', function (t) {
+test('fixture can verify the torrent', function(t) {
 	t.plan(2);
-	fixture.on('ready', function () {
+	fixture.on('ready', function() {
 		t.ok(true, 'should be ready');
 		t.deepEqual(fixture.bitfield.buffer.toString('hex'), 'c0', 'should verify all the pieces');
 	});
 });
 
-test('fixture can read the file contents', function (t) {
+test('fixture can read the file contents', function(t) {
 	t.equal(fixture.files.length, 1, 'should have one file');
 	var file = fixture.files[0];
-	t.test('can read from stream', function (t) {
+	t.test('can read from stream', function(t) {
 		var stream = file.createReadStream();
 		stream.setEncoding('ascii');
 		t.plan(1);
@@ -31,40 +31,40 @@ test('fixture can read the file contents', function (t) {
 			t.equal(stream.read(11), 'Lorem ipsum');
 		});
 	});
-	t.test('can read from stream with offset', function (t) {
-		var stream = file.createReadStream({start:36109});
+	t.test('can read from stream with offset', function(t) {
+		var stream = file.createReadStream({start: 36109});
 		stream.setEncoding('ascii');
 		t.plan(1);
 		stream.on('readable', function() {
 			t.equal(stream.read(6), 'amet. ');
 		});
 	});
-	t.test('can read from storage', function (t) {
+	t.test('can read from storage', function(t) {
 		t.plan(6);
-		fixture.store.read(0, function (err, buffer) {
+		fixture.store.read(0, function(err, buffer) {
 			t.equal(buffer.length, 32768);
 			t.equal(buffer.toString('ascii', 0, 11), 'Lorem ipsum');
 		});
-		fixture.store.read(0, function (err, buffer) {
+		fixture.store.read(0, function(err, buffer) {
 			t.equal(buffer.length, 32768);
 			t.equal(buffer.toString('ascii', 588, 598), 'Vestibulum');
 		});
-		fixture.store.read(1, function (err, buffer) {
+		fixture.store.read(1, function(err, buffer) {
 			t.equal(buffer.length, 3347);
 			t.equal(buffer.toString('ascii', 3341), 'amet. ');
 		});
 	});
-	t.test('can read from storage with offset', function (t) {
+	t.test('can read from storage with offset', function(t) {
 		t.plan(6);
-		fixture.store.read(0, {length:11}, function (err, buffer) {
+		fixture.store.read(0, {length: 11}, function(err, buffer) {
 			t.equal(buffer.length, 11);
 			t.equal(buffer.toString('ascii'), 'Lorem ipsum');
 		});
-		fixture.store.read(0, {offset:588, length:10}, function (err, buffer) {
+		fixture.store.read(0, {offset: 588, length: 10}, function(err, buffer) {
 			t.equal(buffer.length, 10);
 			t.equal(buffer.toString('ascii'), 'Vestibulum');
 		});
-		fixture.store.read(1, {offset:3341}, function (err, buffer) {
+		fixture.store.read(1, {offset: 3341}, function(err, buffer) {
 			t.equal(buffer.length, 6);
 			t.equal(buffer.toString('ascii'), 'amet. ');
 		});
@@ -72,7 +72,7 @@ test('fixture can read the file contents', function (t) {
 	t.end();
 });
 
-test('cleanup', function (t) {
+test('cleanup', function(t) {
 	t.plan(1);
 	fixture.destroy(t.ok.bind(t, true, 'should be destroyed'));
 });

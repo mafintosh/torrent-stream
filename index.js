@@ -103,7 +103,7 @@ var torrentStream = function(link, opts, cb) {
 	var blocked = blocklist(opts.blocklist);
 
 	discovery.on('peer', function(addr) {
-		if (blocked.contains(addr.split(":")[0])) {
+		if (blocked.contains(addr.split(':')[0])) {
 			engine.emit('blocked-peer', addr);
 		} else {
 			engine.emit('peer', addr);
