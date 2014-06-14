@@ -61,7 +61,7 @@ var torrentStream = function(link, opts, cb) {
 		link = parseTorrent(link);
 	} else if (typeof link === 'string') {
 		link = magnet(link);
-	} else {
+	} else if (!link.infoHash) {
 		link = null;
 	}
 
@@ -577,7 +577,7 @@ var torrentStream = function(link, opts, cb) {
 
 	swarm.pause();
 
-	if (link.files) {
+	if (link.files && engine.metadata) {
 		swarm.resume();
 		ontorrent(link);
 	} else {
@@ -592,7 +592,7 @@ var torrentStream = function(link, opts, cb) {
 			var torrent = parseTorrent(buf);
 
 			// Bad cache file - fetch it again
-			if (torrent.infoHash !== link.infoHash) return discovery.setTorrent(link);
+			if (torrent.infoHash !== infoHash) return discovery.setTorrent(link);
 
 			engine.metadata = bncode.encode(bncode.decode(buf).info);
 			ontorrent(torrent);
