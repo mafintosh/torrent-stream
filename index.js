@@ -18,7 +18,6 @@ var rechoke = require('./lib/rechoke');
 var client = require('./lib/torrent-client');
 
 var DEFAULT_PORT = 6881;
-var RECHOKE_INTERVAL = 10000;
 
 var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
 
@@ -68,9 +67,6 @@ var torrentStream = function(link, opts, cb) {
 	var wires = swarm.wires;
 	var critical = [];
 
-	var rechokeSlots = (opts.uploads === false || opts.uploads === 0) ? 0 : (+opts.uploads || 10);
-	var rechokeIntervalId;
-
 	engine.infoHash = infoHash;
 	engine.metadata = metadata;
 	engine.path = opts.path;
@@ -94,9 +90,8 @@ var torrentStream = function(link, opts, cb) {
 		}
 	});
 
-	engine.once('ready', function() {
-		rechokeIntervalId = setInterval(rechoke(wires, rechokeSlots), RECHOKE_INTERVAL);
-	});
+	var rechoker = rechoke(wires, (opts.uploads === false || opts.uploads === 0) ? 0 : (+opts.uploads || 10));
+	engine.once('ready', rechoker.start.bind(rechoker));
 
 	var ontorrent = function(torrent) {
 		client(engine, torrent, critical, opts);
@@ -259,7 +254,7 @@ var torrentStream = function(link, opts, cb) {
 	engine.destroy = function(cb) {
 		destroyed = true;
 		swarm.destroy();
-		clearInterval(rechokeIntervalId);
+		rechoker.stop();
 		discovery.stop();
 		if (engine.store) {
 			engine.store.close(cb);
