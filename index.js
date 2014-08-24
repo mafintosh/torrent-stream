@@ -13,7 +13,7 @@ var os = require('os');
 var eos = require('end-of-stream');
 
 var peerDiscovery = require('./lib/peer-discovery');
-var blocklist = require('./lib/blocklist');
+var blocklist = require('ip-set');
 var exchangeMetadata = require('./lib/exchange-metadata');
 var storage = require('./lib/storage');
 var fileStream = require('./lib/file-stream');
