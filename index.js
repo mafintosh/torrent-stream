@@ -670,7 +670,7 @@ var torrentStream = function(link, opts, cb) {
 			keepPieces = false;
 		}
 
-		if (keepPieces || !engine.store) return removeTmp(cb);
+		if (keepPieces || !engine.store || !engine.store.remove) return removeTmp(cb);
 
 		engine.store.remove(function(err) {
 			if (err) return cb(err);
@@ -683,7 +683,7 @@ var torrentStream = function(link, opts, cb) {
 		swarm.destroy();
 		clearInterval(rechokeIntervalId);
 		discovery.stop();
-		if (engine.store) {
+		if (engine.store && engine.store.remove) {
 			engine.store.close(cb);
 		} else if (cb) {
 			process.nextTick(cb);
