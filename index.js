@@ -16,6 +16,7 @@ var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('ip-set');
 var exchangeMetadata = require('./lib/exchange-metadata');
 var storage = require('./lib/storage');
+var storageBuffer = require('./lib/storage-buffer');
 var fileStream = require('./lib/file-stream');
 var piece = require('./lib/piece');
 
@@ -121,7 +122,7 @@ var torrentStream = function(link, opts, cb) {
 	});
 
 	var ontorrent = function(torrent) {
-		engine.store = (opts.storage || storage(opts.path))(torrent, opts);
+		engine.store = storageBuffer((opts.storage || storage(opts.path))(torrent, opts));
 		engine.torrent = torrent;
 		engine.bitfield = bitfield(torrent.pieces.length);
 
