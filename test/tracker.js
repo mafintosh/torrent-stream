@@ -89,7 +89,9 @@ test('peer should connect to the swarm using magnet link and trackers', function
 test('peer should connect to an alternate tracker', function(t) {
 	t.plan(5);
 	var server = new tracker.Server();
-	server.once('listening', t.ok.bind(t, true, 'tracker should be listening'));
+	server.once('listening', function() {
+		t.ok(true, 'tracker should be listening');
+	});
 	server.once('start', function(addr) {
 		t.equal(addr, '127.0.0.1:6881');
 	});

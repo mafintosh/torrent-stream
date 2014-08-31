@@ -8,21 +8,21 @@
   },
   "dependencies": {
     "bitfield": "^0.1.0",
-    "bittorrent-dht": "^1.0.0",
-    "bittorrent-tracker": "^2.0.0",
+    "bittorrent-dht": "^2.1.1",
+    "bittorrent-tracker": "^2.6.0",
     "bncode": "^0.5.2",
     "compact2string": "^1.2.0",
     "end-of-stream": "^0.1.4",
     "hat": "0.0.3",
     "ip": "^0.3.0",
+    "ip-set": "^1.0.0",
     "magnet-uri": "^2.0.1",
     "mkdirp": "^0.3.5",
     "parse-torrent": "^1.4.0",
     "peer-wire-swarm": "^0.9.0",
     "random-access-file": "^0.3.1",
     "rimraf": "^2.2.5",
-    "thunky": "^0.1.0",
-    "ip-set": "^1.0.0"
+    "thunky": "^0.1.0"
   },
   "devDependencies": {
     "tap": "^0.4.8",
