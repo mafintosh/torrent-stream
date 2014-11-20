@@ -693,7 +693,7 @@ var torrentStream = function(link, opts, cb) {
 
 	engine.listen = function(port, cb) {
 		if (typeof port === 'function') return engine.listen(0, port);
-		engine.port = port || DEFAULT_PORT;
+		engine.port = port || opts.port || DEFAULT_PORT;
 		swarm.listen(engine.port, cb);
 		discovery.updatePort(engine.port);
 	};
