@@ -700,8 +700,9 @@ var torrentStream = function(link, opts, cb) {
 		})
 
 		s.listen(def, function() {
+			var port = s.address().port
 			s.close(function() {
-				engine.listen(s.address().port, cb)
+				engine.listen(port, cb)
 			})
 		})
 	}
