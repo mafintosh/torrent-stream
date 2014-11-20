@@ -691,9 +691,25 @@ var torrentStream = function(link, opts, cb) {
 		}
 	};
 
+	var findPort = function(def, cb) {
+		var net = require('net')
+		var s = net.createServer()
+
+		s.on('error', function() {
+			findPort(0, cb)
+		})
+
+		s.listen(def, function() {
+			s.close(function() {
+				engine.listen(s.address().port, cb)
+			})
+		})
+	}
+
 	engine.listen = function(port, cb) {
 		if (typeof port === 'function') return engine.listen(0, port);
-		engine.port = port || opts.port || DEFAULT_PORT;
+		if (!port) return findPort(opts.port || DEFAULT_PORT, cb);
+		engine.port = port
 		swarm.listen(engine.port, cb);
 		discovery.updatePort(engine.port);
 	};
