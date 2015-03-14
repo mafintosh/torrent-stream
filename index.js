@@ -595,6 +595,10 @@ var torrentStream = function(link, opts, cb) {
 			// Bad cache file - fetch it again
 			if (torrent.infoHash !== infoHash) return discovery.setTorrent(link);
 
+			if (!torrent.announce || !torrent.announce.length) {
+				torrent.announce = link.announce;
+			}
+
 			engine.metadata = bncode.encode(bncode.decode(buf).info);
 			ontorrent(torrent);
 		});
