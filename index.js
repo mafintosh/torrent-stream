@@ -596,7 +596,7 @@ var torrentStream = function(link, opts, cb) {
 			if (torrent.infoHash !== infoHash) return discovery.setTorrent(link);
 
 			if (!torrent.announce || !torrent.announce.length) {
-				torrent.announce = link.announce;
+				opts.trackers = [].concat(opts.trackers || []).concat(link.announce || []);
 			}
 
 			engine.metadata = bncode.encode(bncode.decode(buf).info);
