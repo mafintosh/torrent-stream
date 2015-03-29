@@ -1,4 +1,3 @@
-var magnet = require('magnet-uri');
 var hat = require('hat');
 var pws = require('peer-wire-swarm');
 var bncode = require('bncode');
@@ -55,19 +54,8 @@ var toNumber = function(val) {
 var torrentStream = function(link, opts, cb) {
 	if (typeof opts === 'function') return torrentStream(link, null, opts);
 
-	var metadata = null;
-
-	if (Buffer.isBuffer(link)) {
-		metadata = bncode.encode(bncode.decode(link).info);
-		link = parseTorrent(link);
-	} else if (typeof link === 'string') {
-		link = magnet(link);
-	} else if (!link.infoHash) {
-		link = null;
-	}
-
-	if (!link || !link.infoHash) throw new Error('You must pass a valid torrent or magnet link');
-
+	link = parseTorrent(link);
+	var metadata = link.infoBuffer || null;
 	var infoHash = link.infoHash;
 
 	if (!opts) opts = {};
@@ -599,7 +587,7 @@ var torrentStream = function(link, opts, cb) {
 				opts.trackers = [].concat(opts.trackers || []).concat(link.announce || []);
 			}
 
-			engine.metadata = bncode.encode(bncode.decode(buf).info);
+			engine.metadata = torrent.infoBuffer;
 			ontorrent(torrent);
 		});
 	}
