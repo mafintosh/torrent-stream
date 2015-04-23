@@ -13,7 +13,7 @@ var fixture = torrents(torrent, {
 
 test('fixture can verify the torrent', function(t) {
 	t.plan(2);
-	fixture.on('ready', function() {
+	fixture.once('ready', function() {
 		t.ok(true, 'should be ready');
 		t.deepEqual(fixture.bitfield.buffer.toString('hex'), 'c0', 'should verify all the pieces');
 	});
@@ -26,7 +26,7 @@ test('fixture can read the file contents', function(t) {
 		var stream = file.createReadStream();
 		stream.setEncoding('ascii');
 		t.plan(1);
-		stream.on('readable', function() {
+		stream.once('readable', function() {
 			t.equal(stream.read(11), 'Lorem ipsum');
 		});
 	});
@@ -34,7 +34,7 @@ test('fixture can read the file contents', function(t) {
 		var stream = file.createReadStream({start: 36109});
 		stream.setEncoding('ascii');
 		t.plan(1);
-		stream.on('readable', function() {
+		stream.once('readable', function() {
 			t.equal(stream.read(6), 'amet. ');
 		});
 	});
