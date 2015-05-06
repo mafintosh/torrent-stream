@@ -88,7 +88,11 @@ var torrentStream = function(link, opts, cb) {
 	var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent');
 
 	if (cb) engine.on('ready', cb.bind(null, engine));
-
+	
+	engine.ready = function(cb) {
+		engine.torrent ? cb() : engine.once("ready", cb);
+	}
+	
 	var wires = swarm.wires;
 	var critical = [];
 	var refresh = noop;
