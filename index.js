@@ -608,6 +608,20 @@ var torrentStream = function(link, opts, cb) {
 			ontorrent(torrent);
 		});
 	}
+	
+	engine.discover = function() {
+		discovery.stop();
+		discovery = peerDiscovery(opts);
+		discovery.on('peer', function(addr) {
+			if (blocked.contains(addr.split(':')[0])) {
+				engine.emit('blocked-peer', addr);
+			} else {
+				engine.emit('peer', addr);
+				engine.connect(addr);
+			}
+		});
+		discovery.setTorrent(link);
+	};
 
 	engine.critical = function(piece, width) {
 		for (var i = 0; i < (width || 1); i++) critical[piece+i] = true;
@@ -625,6 +639,8 @@ var torrentStream = function(link, opts, cb) {
 		engine.selection.sort(function(a, b) {
 			return b.priority - a.priority;
 		});
+		
+		if (swarm.paused) this.discover();
 
 		refresh();
 	};
