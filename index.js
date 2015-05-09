@@ -581,15 +581,17 @@ var torrentStream = function(link, opts, cb) {
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
 	});
 
-	swarm.pause();
+	var pauseSwarm = true;
 
 	if (link.files && engine.metadata) {
 		swarm.resume();
+		pauseSwarm = false;
 		ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
 			swarm.resume();
+			pauseSwarm = false;
 
 			// We know only infoHash here, not full infoDictionary.
 			// But infoHash is enough to connect to trackers and get peers.
@@ -609,6 +611,9 @@ var torrentStream = function(link, opts, cb) {
 		});
 	}
 
+	if (pauseSwarm) swarm.pause();
+	delete pauseSwarm;
+
 	engine.critical = function(piece, width) {
 		for (var i = 0; i < (width || 1); i++) critical[piece+i] = true;
 	};
@@ -625,6 +630,8 @@ var torrentStream = function(link, opts, cb) {
 		engine.selection.sort(function(a, b) {
 			return b.priority - a.priority;
 		});
+		
+		if (swarm.paused) discovery.restart();
 
 		refresh();
 	};
