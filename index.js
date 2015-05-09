@@ -180,8 +180,15 @@ var torrentStream = function(link, opts, cb) {
 			});
 
 			if (prev === engine.amInterested) return;
-			if (engine.amInterested) engine.emit('interested');
-			else engine.emit('uninterested');
+			if (engine.amInterested) {
+				engine.emit('interested');
+				if (swarm.paused) {
+					swarm.resume();
+					discovery.restart();
+				}
+			} else {
+				engine.emit('uninterested');
+			}
 		};
 
 		var gc = function() {
@@ -581,15 +588,11 @@ var torrentStream = function(link, opts, cb) {
 		if (engine.bitfield) wire.bitfield(engine.bitfield);
 	});
 
-	swarm.pause();
-
 	if (link.files && engine.metadata) {
-		swarm.resume();
 		ontorrent(link);
 	} else {
 		fs.readFile(torrentPath, function(_, buf) {
 			if (destroyed) return;
-			swarm.resume();
 
 			// We know only infoHash here, not full infoDictionary.
 			// But infoHash is enough to connect to trackers and get peers.
