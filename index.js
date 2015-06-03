@@ -11,6 +11,7 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
+var debounce = require('lodash.debounce');
 
 var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('ip-set');
@@ -31,6 +32,8 @@ var BAD_PIECE_STRIKES_DURATION = 120000; // 2 minutes
 
 var RECHOKE_INTERVAL = 10000;
 var RECHOKE_OPTIMISTIC_DURATION = 2;
+
+var COMPLETE_DEBOUNCE_DELAY = 250;
 
 var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
 
@@ -723,6 +726,22 @@ var torrentStream = function(link, opts, cb) {
 		swarm.listen(engine.port, cb);
 		discovery.updatePort(engine.port);
 	};
+
+	// check if download is complete
+	engine.on('verify', debounce(function checkComplete () {
+		var bits = engine.torrent.pieces.length;
+		var bytes = bits / 8 | 0;
+		var rem = bits % 8;
+		var buffer = engine.bitfield.buffer;
+		for (var i = 0; i < bytes; i++) {
+			if (buffer[i] !== 255) return; // every byte must be full of ones
+		}
+		var mask = 256 - Math.pow(2, 8 - rem); // the last byte may be not full
+		if (rem === 0 || buffer[bytes] === mask) {
+			discovery.complete();
+			engine.emit('complete');
+		}
+	}, COMPLETE_DEBOUNCE_DELAY));
 
 	return engine;
 };

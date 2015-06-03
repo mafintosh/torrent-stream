@@ -16,7 +16,7 @@ server.on('error', function() {
 });
 
 test('seed should connect to the tracker', function(t) {
-	t.plan(3);
+	t.plan(4);
 
 	server.once('listening', function() {
 		t.ok(true, 'tracker should be listening');
@@ -28,7 +28,10 @@ test('seed should connect to the tracker', function(t) {
 		fixture.once('ready', t.ok.bind(t, true, 'should be ready'));
 	});
 	server.once('start', function(addr) {
-		t.equal(addr, '127.0.0.1:6882');
+		t.equal(addr, '127.0.0.1:6882', 'should report `start`');
+	});
+	server.once('complete', function(addr) {
+		t.equal(addr, '127.0.0.1:6882', 'should report `complete`');
 	});
 	server.listen(12345);
 });

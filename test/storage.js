@@ -19,6 +19,13 @@ test('fixture can verify the torrent', function(t) {
 	});
 });
 
+test('fixture should report `complete`', function(t) {
+	t.plan(1);
+	fixture.once('complete', function() {
+		t.ok(true, 'should be complete');
+	});
+});
+
 test('fixture can read the file contents', function(t) {
 	t.equal(fixture.files.length, 1, 'should have one file');
 	var file = fixture.files[0];
