@@ -366,7 +366,7 @@ var torrentStream = function(link, opts, cb) {
 		var select = function(wire, hotswap) {
 			if (wire.requests.length >= MAX_REQUESTS) return true;
 			
-			// Pulse. Default is no pulsing (flood).
+			// Pulse, or flood (default)
 			if (swarm.downloaded > engine.FLOOD && swarm.downloadSpeed() > engine.PULSE) 
        			return true;
        			
