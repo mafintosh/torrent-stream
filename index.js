@@ -101,8 +101,8 @@ var torrentStream = function(link, opts, cb) {
 	engine.amInterested = false;
 	engine.store = null;
 	engine.swarm = swarm;
-	engine.DOWNLOAD = Number.MAX_SAFE_INTEGER;  // Growler defaults:
-	engine.THROTTLE = Number.MAX_SAFE_INTEGER;  // Do not growl
+	engine.DOWNLOAD = Number.MAX_SAFE_INTEGER;  // Pulse defaults:
+	engine.THROTTLE = Number.MAX_SAFE_INTEGER;  // Do not pulse
 
 	var discovery = peerDiscovery(opts);
 	var blocked = blocklist(opts.blocklist);
@@ -366,7 +366,7 @@ var torrentStream = function(link, opts, cb) {
 		var select = function(wire, hotswap) {
 			if (wire.requests.length >= MAX_REQUESTS) return true;
 			
-			// Growl. Default is no growling.
+			// Pulse. Default is no pulsing (flood).
 			if (swarm.downloaded > engine.DOWNLOAD && swarm.downloadSpeed() > engine.THROTTLE) 
        			return true;
        			
