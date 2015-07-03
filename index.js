@@ -104,7 +104,7 @@ var torrentStream = function(link, opts, cb) {
 	engine.store = null;
 	engine.swarm = swarm;
 	engine.flood = opts.flood;
-        engine.pulse = opts.pulse;
+	engine.pulse = opts.pulse;
 
 	var discovery = peerDiscovery(opts);
 	var blocked = blocklist(opts.blocklist);
