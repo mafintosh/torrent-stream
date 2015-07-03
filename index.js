@@ -663,6 +663,15 @@ var torrentStream = function(link, opts, cb) {
 		engine.setPulse(bps);
 	};
 	
+	engine.flood = function() {
+		// Reset flood/pulse values to default (dynamic)
+		// Eg. Flood the network starting now:
+		// engine.flood();
+		
+		engine.setFlood(Number.MAX_SAFE_INTEGER);
+		engine.setPulse(Number.MAX_SAFE_INTEGER);
+	};
+	
 	engine.connect = function(addr) {
 		swarm.add(addr);
 	};
