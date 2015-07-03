@@ -62,7 +62,9 @@ var torrentStream = function(link, opts, cb) {
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
 	if (!opts.name) opts.name = 'torrent-stream';
-
+	if (!opts.flood) opts.flood = Number.MAX_SAFE_INTEGER;  // Pulse defaults:
+	if (!opts.pulse) opts.pulse = Number.MAX_SAFE_INTEGER;  // Do not pulse
+	
 	var usingTmp = false;
 	var destroyed = false;
 
@@ -101,8 +103,8 @@ var torrentStream = function(link, opts, cb) {
 	engine.amInterested = false;
 	engine.store = null;
 	engine.swarm = swarm;
-	engine.flood = Number.MAX_SAFE_INTEGER;  // Pulse defaults:
-	engine.pulse = Number.MAX_SAFE_INTEGER;  // Do not pulse
+	engine.flood = opts.flood;
+        engine.pulse = opts.pulse;
 
 	var discovery = peerDiscovery(opts);
 	var blocked = blocklist(opts.blocklist);
