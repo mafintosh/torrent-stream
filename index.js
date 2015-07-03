@@ -638,6 +638,31 @@ var torrentStream = function(link, opts, cb) {
 		refresh();
 	};
 
+	engine.setPulse = function(bps) {
+		// Set minimum byte/second pulse starting now (dynamic)
+		// Eg. Start pulsing at minimum 312 KBps:
+		// engine.setPulse(312*1024);
+		
+		engine.pulse = bps;
+	};
+	
+	engine.setFlood = function(b) {
+		// Set bytes to flood starting now (dynamic)
+		// Eg. Start flooding for next 10 MB:
+		// engine.setFlood(10*1024*1024)
+		
+		engine.flood = b + swarm.downloaded;
+	};
+	
+	engine.setFloodedPulse = function(b, bps) {
+		// Set bytes to flood before starting a minimum byte/second pulse (dynamic)
+		// Eg. Start flooding for next 10 MB, then start pulsing at minimum 312 KBps:
+		// engine.setFloodedPulse(10*1024*1024, 312*1024);
+		
+		engine.setFlood(b);
+		engine.setPulse(bps);
+	};
+	
 	engine.connect = function(addr) {
 		swarm.add(addr);
 	};
