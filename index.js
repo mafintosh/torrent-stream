@@ -668,8 +668,8 @@ var torrentStream = function(link, opts, cb) {
 		// Eg. Flood the network starting now:
 		// engine.flood();
 		
-		engine.setFlood(Number.MAX_SAFE_INTEGER);
-		engine.setPulse(Number.MAX_SAFE_INTEGER);
+		engine.flood = Number.MAX_SAFE_INTEGER;
+		engine.pulse = Number.MAX_SAFE_INTEGER;
 	};
 	
 	engine.connect = function(addr) {
