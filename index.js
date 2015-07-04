@@ -62,7 +62,7 @@ var torrentStream = function(link, opts, cb) {
 	if (!opts.id) opts.id = '-TS0008-'+hat(48);
 	if (!opts.tmp) opts.tmp = TMP;
 	if (!opts.name) opts.name = 'torrent-stream';
-	if (!opts.flood) opts.flood = Number.MAX_SAFE_INTEGER;  // Pulse defaults:
+	if (!opts.flood) opts.flood = 0;                        // Pulse defaults:
 	if (!opts.pulse) opts.pulse = Number.MAX_SAFE_INTEGER;  // Do not pulse
 	
 	var usingTmp = false;
@@ -668,7 +668,7 @@ var torrentStream = function(link, opts, cb) {
 		// Eg. Flood the network starting now:
 		// engine.flood();
 		
-		engine.flood = Number.MAX_SAFE_INTEGER;
+		engine.flood = 0;
 		engine.pulse = Number.MAX_SAFE_INTEGER;
 	};
 	
