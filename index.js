@@ -147,9 +147,10 @@ var torrentStream = function(link, opts, cb) {
 			file.createReadStream = function(opts) {
 				var stream = fileStream(engine, file, opts);
 
-				engine.select(stream.startPiece, stream.endPiece, true, stream.notify.bind(stream));
+				var notify = stream.notify.bind(stream);
+				engine.select(stream.startPiece, stream.endPiece, true, notify);
 				eos(stream, function() {
-					engine.deselect(stream.startPiece, stream.endPiece, true);
+					engine.deselect(stream.startPiece, stream.endPiece, true, notify);
 				});
 
 				return stream;
@@ -617,11 +618,13 @@ var torrentStream = function(link, opts, cb) {
 		refresh();
 	};
 
-	engine.deselect = function(from, to, priority) {
+	engine.deselect = function(from, to, priority, notify) {
+		notify = notify || noop;
 		for (var i = 0; i < engine.selection.length; i++) {
 			var s = engine.selection[i];
 			if (s.from !== from || s.to !== to) continue;
 			if (s.priority !== toNumber(priority)) continue;
+			if (s.notify !== notify) continue;
 			engine.selection.splice(i, 1);
 			i--;
 			break;
