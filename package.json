@@ -1,6 +1,6 @@
 {
   "name": "torrent-stream",
-  "version": "0.19.2",
+  "version": "0.20.0",
   "description": "Low level streaming torrent client that exposes files as node.js streams and downloads pieces based on demand",
   "repository": "git://github.com/mafintosh/torrent-stream.git",
   "scripts": {
