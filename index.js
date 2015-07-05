@@ -217,23 +217,27 @@ var torrentStream = function(link, opts, cb) {
 
 			writingFastResumeData = true;
 
-			var done = function (err) {
-				if (err) engine.emit('error', err);
+			var done = function (runScheduledOnSuccess) {
+				return function (err) {
+					if (err) engine.emit('error', err);
 
-				writingFastResumeData = false;
-				if (writeFastResumeDataScheduled) {
-					writeFastResumeDataScheduled = false;
-					writeFastResumeData(writeFastResumeDataScheduledData);
-				}
+					if (!err && runScheduledOnSuccess) {
+						writingFastResumeData = false;
+						if (writeFastResumeDataScheduled) {
+							writeFastResumeDataScheduled = false;
+							writeFastResumeData(writeFastResumeDataScheduledData);
+						}
+					}
 
-				return err;
+					return err;
+				};
 			};
 
 			mkdirp(path.dirname(fastResumeDataPath), function(err) {
-				if (done(err)) return;
+				if (done(false)(err)) return;
 
 				var fastResumeData = Buffer.concat([sha1(data, true), data]);
-				fs.writeFile(fastResumeDataPath, fastResumeData, done);
+				fs.writeFile(fastResumeDataPath, fastResumeData, done(true));
 			});
 		};
 
