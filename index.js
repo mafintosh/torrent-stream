@@ -255,7 +255,7 @@ var torrentStream = function(link, opts, cb) {
 			engine.emit('download', index, buffer);
 
 			engine.store.write(index, buffer, function (err) {
-				if (!err) {
+				if (!err && opts.fastresume) {
 					writeFastResumeData(fastResumeData);
 				}
 			});
@@ -591,7 +591,9 @@ var torrentStream = function(link, opts, cb) {
 
 			var loop = function(i) {
 				if (i >= torrent.pieces.length) {
-					writeFastResumeData(engine.bitfield.buffer);
+					if (opts.fastresume) {
+						writeFastResumeData(engine.bitfield.buffer);
+					}
 					return onready();
 				}
 				engine.store.read(i, function(_, buf) {
@@ -606,26 +608,30 @@ var torrentStream = function(link, opts, cb) {
 			loop(0);
 		};
 
-		fs.readFile(fastResumeDataPath, function(err, buf) {
-			if (err) return verify();
+		if (!opts.fastresume) {
+			verify();
+		} else {
+			fs.readFile(fastResumeDataPath, function(err, buf) {
+				if (err) return verify();
 
-			// 20 bytes is the size of SHA1 hash
-			var fastResumeDataHash = sha1(buf.slice(20), true);
-			if (!buf.slice(0, 20).equals(fastResumeDataHash)) return verify();
+				// 20 bytes is the size of SHA1 hash
+				var fastResumeDataHash = sha1(buf.slice(20), true);
+				if (!buf.slice(0, 20).equals(fastResumeDataHash)) return verify();
 
-			if (engine.bitfield.buffer.length !== buf.slice(20).length) return verify();
+				if (engine.bitfield.buffer.length !== buf.slice(20).length) return verify();
 
-			engine.bitfield = bitfield(buf.slice(20));
+				engine.bitfield = bitfield(buf.slice(20));
 
-			for (var i = 0; i < torrent.pieces.length; i += 1) {
-				if (engine.bitfield.get(i)) {
-					pieces[i] = null;
-					engine.emit('verify', i);
+				for (var i = 0; i < torrent.pieces.length; i += 1) {
+					if (engine.bitfield.get(i)) {
+						pieces[i] = null;
+						engine.emit('verify', i);
+					}
 				}
-			}
 
-			onready();
-		});
+				onready();
+			});
+		}
 	};
 
 	var exchange = exchangeMetadata(engine, function(metadata) {
