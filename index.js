@@ -103,8 +103,8 @@ var torrentStream = function(link, opts, cb) {
 	engine.amInterested = false;
 	engine.store = null;
 	engine.swarm = swarm;
-	engine.flood = opts.flood;
-	engine.pulse = opts.pulse;
+	engine._flood = opts.flood;
+	engine._pulse = opts.pulse;
 
 	var discovery = peerDiscovery(opts);
 	var blocked = blocklist(opts.blocklist);
@@ -370,7 +370,7 @@ var torrentStream = function(link, opts, cb) {
 			if (wire.requests.length >= MAX_REQUESTS) return true;
 			
 			// Pulse, or flood (default)
-			if (swarm.downloaded > engine.flood && swarm.downloadSpeed() > engine.pulse) 
+			if (swarm.downloaded > engine._flood && swarm.downloadSpeed() > engine._pulse)
        			return true;
        			
 			var rank = speedRanker(wire);
@@ -645,36 +645,36 @@ var torrentStream = function(link, opts, cb) {
 		// Set minimum byte/second pulse starting now (dynamic)
 		// Eg. Start pulsing at minimum 312 KBps:
 		// engine.setPulse(312*1024);
-		
-		engine.pulse = bps;
+
+		engine._pulse = bps;
 	};
-	
+
 	engine.setFlood = function(b) {
 		// Set bytes to flood starting now (dynamic)
 		// Eg. Start flooding for next 10 MB:
 		// engine.setFlood(10*1024*1024)
-		
-		engine.flood = b + swarm.downloaded;
+
+		engine._flood = b + swarm.downloaded;
 	};
-	
+
 	engine.setFloodedPulse = function(b, bps) {
 		// Set bytes to flood before starting a minimum byte/second pulse (dynamic)
 		// Eg. Start flooding for next 10 MB, then start pulsing at minimum 312 KBps:
 		// engine.setFloodedPulse(10*1024*1024, 312*1024);
-		
+
 		engine.setFlood(b);
 		engine.setPulse(bps);
 	};
-	
+
 	engine.flood = function() {
 		// Reset flood/pulse values to default (dynamic)
 		// Eg. Flood the network starting now:
 		// engine.flood();
-		
-		engine.flood = 0;
-		engine.pulse = Number.MAX_SAFE_INTEGER;
+
+		engine._flood = 0;
+		engine._pulse = Number.MAX_SAFE_INTEGER;
 	};
-	
+
 	engine.connect = function(addr) {
 		swarm.add(addr);
 	};
