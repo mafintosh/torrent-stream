@@ -104,7 +104,7 @@ var torrentStream = function(link, opts, cb) {
 	engine.store = null;
 	engine.swarm = swarm;
 	engine._flood = opts.flood;
-	engine.pulse = opts.pulse;
+	engine._pulse = opts.pulse;
 
 	var discovery = peerDiscovery(opts);
 	var blocked = blocklist(opts.blocklist);
@@ -370,7 +370,7 @@ var torrentStream = function(link, opts, cb) {
 			if (wire.requests.length >= MAX_REQUESTS) return true;
 			
 			// Pulse, or flood (default)
-			if (swarm.downloaded > engine._flood && swarm.downloadSpeed() > engine.pulse) 
+			if (swarm.downloaded > engine._flood && swarm.downloadSpeed() > engine._pulse)
        			return true;
        			
 			var rank = speedRanker(wire);
@@ -646,7 +646,7 @@ var torrentStream = function(link, opts, cb) {
 		// Eg. Start pulsing at minimum 312 KBps:
 		// engine.setPulse(312*1024);
 
-		engine.pulse = bps;
+		engine._pulse = bps;
 	};
 
 	engine.setFlood = function(b) {
@@ -672,7 +672,7 @@ var torrentStream = function(link, opts, cb) {
 		// engine.flood();
 
 		engine._flood = 0;
-		engine.pulse = Number.MAX_SAFE_INTEGER;
+		engine._pulse = Number.MAX_SAFE_INTEGER;
 	};
 
 	engine.connect = function(addr) {
