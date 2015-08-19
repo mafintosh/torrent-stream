@@ -10,6 +10,7 @@ var path = require('path');
 var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
+var piece = require('torrent-piece');
 
 var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('ip-set');
@@ -17,12 +18,11 @@ var exchangeMetadata = require('./lib/exchange-metadata');
 var storage = require('./lib/storage');
 var storageBuffer = require('./lib/storage-buffer');
 var fileStream = require('./lib/file-stream');
-var piece = require('./lib/piece');
 
 var MAX_REQUESTS = 5;
 var CHOKE_TIMEOUT = 5000;
 var REQUEST_TIMEOUT = 30000;
-var SPEED_THRESHOLD = 3 * piece.BLOCK_SIZE;
+var SPEED_THRESHOLD = 3 * piece.BLOCK_LENGTH;
 var DEFAULT_PORT = 6881;
 
 var BAD_PIECE_STRIKES_MAX = 3;
@@ -215,7 +215,7 @@ var torrentStream = function(link, opts, cb) {
 
 		var onhotswap = opts.hotswap === false ? falsy : function(wire, index) {
 			var speed = wire.downloadSpeed();
-			if (speed < piece.BLOCK_SIZE) return;
+			if (speed < piece.BLOCK_LENGTH) return;
 			if (!reservations[index] || !pieces[index]) return;
 
 			var r = reservations[index];
@@ -264,8 +264,8 @@ var torrentStream = function(link, opts, cb) {
 			if (reservation === -1) return false;
 
 			var r = reservations[index] || [];
-			var offset = p.offset(reservation);
-			var size = p.size(reservation);
+			var offset = p.chunkOffset(reservation);
+			var size = p.chunkLength(reservation);
 
 			var i = r.indexOf(null);
 			if (i === -1) i = r.length;
@@ -332,7 +332,7 @@ var torrentStream = function(link, opts, cb) {
 			var speed = wire.downloadSpeed() || 1;
 			if (speed > SPEED_THRESHOLD) return thruthy;
 
-			var secs = MAX_REQUESTS * piece.BLOCK_SIZE / speed;
+			var secs = MAX_REQUESTS * piece.BLOCK_LENGTH / speed;
 			var tries = 10;
 			var ptr = 0;
 
