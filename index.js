@@ -35,8 +35,8 @@ var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir();
 
 var noop = function() {};
 
-var sha1 = function(data) {
-	return crypto.createHash('sha1').update(data).digest('hex');
+var sha1 = function(data, buffer) {
+	return crypto.createHash('sha1').update(data).digest(buffer ? undefined : 'hex');
 };
 
 var thruthy = function() {
@@ -76,6 +76,7 @@ var torrentStream = function(link, opts, cb) {
 	var engine = new events.EventEmitter();
 	var swarm = pws(infoHash, opts.id, { size: (opts.connections || opts.size), speed: 10 });
 	var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent');
+	var fastResumeDataPath = path.join(opts.tmp, opts.name, infoHash + '.fastresume');
 
 	if (cb) engine.on('ready', cb.bind(null, engine));
 
@@ -197,19 +198,61 @@ var torrentStream = function(link, opts, cb) {
 			if (!engine.selection.length) engine.emit('idle');
 		};
 
+		var writingFastResumeData = false;
+		var writeFastResumeDataScheduled = false;
+		var writeFastResumeDataScheduledData = null;
+		var writeFastResumeData = function(data) {
+			if (writingFastResumeData) {
+				writeFastResumeDataScheduled = true;
+				writeFastResumeDataScheduledData = data;
+				return;
+			}
+
+			writingFastResumeData = true;
+
+			var done = function (runScheduledOnSuccess) {
+				return function (err) {
+					if (err) engine.emit('error', err);
+
+					if (!err && runScheduledOnSuccess) {
+						writingFastResumeData = false;
+						if (writeFastResumeDataScheduled) {
+							writeFastResumeDataScheduled = false;
+							writeFastResumeData(writeFastResumeDataScheduledData);
+						}
+					}
+
+					return err;
+				};
+			};
+
+			mkdirp(path.dirname(fastResumeDataPath), function(err) {
+				if (done(false)(err)) return;
+
+				var fastResumeData = Buffer.concat([sha1(data, true), data]);
+				fs.writeFile(fastResumeDataPath, fastResumeData, done(true));
+			});
+		};
+
 		var onpiececomplete = function(index, buffer) {
 			if (!pieces[index]) return;
 
 			pieces[index] = null;
 			reservations[index] = null;
 			engine.bitfield.set(index, true);
+			var fastResumeData = new Buffer(engine.bitfield.buffer);
 
 			for (var i = 0; i < wires.length; i++) wires[i].have(index);
 
 			engine.emit('verify', index);
 			engine.emit('download', index, buffer);
 
-			engine.store.write(index, buffer);
+			engine.store.write(index, buffer, function (err) {
+				if (!err && opts.fastresume) {
+					writeFastResumeData(fastResumeData);
+				}
+			});
+
 			gc();
 		};
 
@@ -538,22 +581,54 @@ var torrentStream = function(link, opts, cb) {
 			refresh();
 		};
 
-		if (opts.verify === false) return onready();
+		var verify = function() {
+			if (opts.verify === false) return onready();
 
-		engine.emit('verifying');
+			engine.emit('verifying');
 
-		var loop = function(i) {
-			if (i >= torrent.pieces.length) return onready();
-			engine.store.read(i, function(_, buf) {
-				if (!buf || sha1(buf) !== torrent.pieces[i] || !pieces[i]) return loop(i+1);
-				pieces[i] = null;
-				engine.bitfield.set(i, true);
-				engine.emit('verify', i);
-				loop(i+1);
-			});
+			var loop = function(i) {
+				if (i >= torrent.pieces.length) {
+					if (opts.fastresume) {
+						writeFastResumeData(engine.bitfield.buffer);
+					}
+					return onready();
+				}
+				engine.store.read(i, function(_, buf) {
+					if (!buf || sha1(buf) !== torrent.pieces[i] || !pieces[i]) return loop(i+1);
+					pieces[i] = null;
+					engine.bitfield.set(i, true);
+					engine.emit('verify', i);
+					loop(i+1);
+				});
+			};
+
+			loop(0);
 		};
 
-		loop(0);
+		if (!opts.fastresume) {
+			verify();
+		} else {
+			fs.readFile(fastResumeDataPath, function(err, buf) {
+				if (err) return verify();
+
+				// 20 bytes is the size of SHA1 hash
+				var fastResumeDataHash = sha1(buf.slice(20), true);
+				if (!buf.slice(0, 20).equals(fastResumeDataHash)) return verify();
+
+				if (engine.bitfield.buffer.length !== buf.slice(20).length) return verify();
+
+				engine.bitfield = bitfield(buf.slice(20));
+
+				for (var i = 0; i < torrent.pieces.length; i += 1) {
+					if (engine.bitfield.get(i)) {
+						pieces[i] = null;
+						engine.emit('verify', i);
+					}
+				}
+
+				onready();
+			});
+		}
 	};
 
 	var exchange = exchangeMetadata(engine, function(metadata) {
