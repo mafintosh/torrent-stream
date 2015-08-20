@@ -41,12 +41,24 @@ test('peer should block the seed via blocklist', function(t) {
 			{ start: '127.0.0.1', end: '127.0.0.1' }
 		]
 	});
+
+	var blockedPeer = false;
+	var ready = false;
+	var maybeDone = function() {
+		if (blockedPeer && ready) {
+			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
+		}
+	}
+
+	peer.once('blocked-peer', function(addr) {
+		t.equal(addr, '127.0.0.1:6882');
+		blockedPeer = true
+		maybeDone();
+	});
 	peer.once('ready', function() {
 		t.ok(true, 'peer should be ready');
-		peer.once('blocked-peer', function(addr) {
-			t.equal(addr, '127.0.0.1:6882');
-			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
-		});
+		ready = true;
+		maybeDone();
 	});
 });
 
@@ -54,12 +66,24 @@ test('peer should block the seed via explicit block', function(t) {
 	t.plan(3);
 	var peer = torrents(torrent, { dht: false });
 	peer.block('127.0.0.1:6882');
+
+	var blockedPeer = false;
+	var ready = false;
+	var maybeDone = function() {
+		if (blockedPeer && ready) {
+			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
+		}
+	}
+
+	peer.once('blocked-peer', function(addr) {
+		t.equal(addr, '127.0.0.1:6882');
+		blockedPeer = true
+		maybeDone();
+	});
 	peer.once('ready', function() {
 		t.ok(true, 'peer should be ready');
-		peer.once('blocked-peer', function(addr) {
-			t.equal(addr, '127.0.0.1:6882');
-			peer.destroy(t.ok.bind(t, true, 'peer should be destroyed'));
-		});
+		ready = true;
+		maybeDone();
 	});
 });
 
