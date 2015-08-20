@@ -27,7 +27,7 @@ test('fixture can verify the torrent', function(t) {
 test('peer should be blocked on bad piece', function(t) {
 	t.plan(4);
 
-	fixture.store.write(0, new Buffer(1 << 14), function() {
+	fixture.store.put(0, new Buffer(1 << 15), function(err) {
 		t.ok(true, 'bad piece should be written');
 
 		var engine = torrents(torrent, {

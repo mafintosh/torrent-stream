@@ -40,30 +40,30 @@ test('fixture can read the file contents', function(t) {
 	});
 	t.test('can read from storage', function(t) {
 		t.plan(6);
-		fixture.store.read(0, function(err, buffer) {
+		fixture.store.get(0, function(err, buffer) {
 			t.equal(buffer.length, 32768);
 			t.equal(buffer.toString('ascii', 0, 11), 'Lorem ipsum');
 		});
-		fixture.store.read(0, function(err, buffer) {
+		fixture.store.get(0, function(err, buffer) {
 			t.equal(buffer.length, 32768);
 			t.equal(buffer.toString('ascii', 588, 598), 'Vestibulum');
 		});
-		fixture.store.read(1, function(err, buffer) {
+		fixture.store.get(1, function(err, buffer) {
 			t.equal(buffer.length, 3347);
 			t.equal(buffer.toString('ascii', 3341), 'amet. ');
 		});
 	});
 	t.test('can read from storage with offset', function(t) {
 		t.plan(6);
-		fixture.store.read(0, {length: 11}, function(err, buffer) {
+		fixture.store.get(0, {length: 11}, function(err, buffer) {
 			t.equal(buffer.length, 11);
 			t.equal(buffer.toString('ascii'), 'Lorem ipsum');
 		});
-		fixture.store.read(0, {offset: 588, length: 10}, function(err, buffer) {
+		fixture.store.get(0, {offset: 588, length: 10}, function(err, buffer) {
 			t.equal(buffer.length, 10);
 			t.equal(buffer.toString('ascii'), 'Vestibulum');
 		});
-		fixture.store.read(1, {offset: 3341}, function(err, buffer) {
+		fixture.store.get(1, {offset: 3341}, function(err, buffer) {
 			t.equal(buffer.length, 6);
 			t.equal(buffer.toString('ascii'), 'amet. ');
 		});

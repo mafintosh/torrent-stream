@@ -1,8 +1,10 @@
 var test = require('tap').test;
 var torrents = require('../');
 var fs = require('fs');
+var path = require('path');
 
-var fixture = torrents('magnet:?xt=urn:btih:ef330b39f4801d25b4245212e75a38634bfc856e', {
+var fixture = torrents(fs.readFileSync(path.join(__dirname, 'data', 'star.torrent')), {
+	dht: false,
 	tracker: false
 });
 
@@ -18,7 +20,7 @@ var engine = function() {
 	return e;
 };
 
-test('fixture can connect to the dht', function(t) {
+test('fixture should be ready', function(t) {
 	t.plan(1);
 	fixture.on('ready', t.ok.bind(t, true, 'should be ready'));
 });

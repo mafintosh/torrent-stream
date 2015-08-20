@@ -11,12 +11,13 @@ var fs = require('fs');
 var os = require('os');
 var eos = require('end-of-stream');
 var piece = require('torrent-piece');
+var rimraf = require('rimraf');
+var FSChunkStore = require('fs-chunk-store');
+var ImmediateChunkStore = require('immediate-chunk-store');
 
 var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('ip-set');
 var exchangeMetadata = require('./lib/exchange-metadata');
-var storage = require('./lib/storage');
-var storageBuffer = require('./lib/storage-buffer');
 var fileStream = require('./lib/file-stream');
 
 var MAX_REQUESTS = 5;
@@ -119,7 +120,16 @@ var torrentStream = function(link, opts, cb) {
 	});
 
 	var ontorrent = function(torrent) {
-		engine.store = storageBuffer((opts.storage || storage(opts.path))(torrent, opts));
+		var storage = opts.storage || FSChunkStore;
+		engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
+			files: torrent.files.map(function (file) {
+				return {
+					path: path.join(opts.path, file.path),
+					length: file.length,
+					offset: file.offset
+				}
+			})
+		}));
 		engine.torrent = torrent;
 		engine.bitfield = bitfield(torrent.pieces.length);
 
@@ -209,7 +219,7 @@ var torrentStream = function(link, opts, cb) {
 			engine.emit('verify', index);
 			engine.emit('download', index, buffer);
 
-			engine.store.write(index, buffer);
+			engine.store.put(index, buffer);
 			gc();
 		};
 
@@ -430,7 +440,7 @@ var torrentStream = function(link, opts, cb) {
 
 			wire.on('request', function(index, offset, length, cb) {
 				if (pieces[index]) return;
-				engine.store.read(index, { offset: offset, length: length }, function(err, buffer) {
+				engine.store.get(index, { offset: offset, length: length }, function(err, buffer) {
 					if (err) return cb(err);
 					engine.emit('upload', index, offset, length);
 					cb(null, buffer);
@@ -544,7 +554,7 @@ var torrentStream = function(link, opts, cb) {
 
 		var loop = function(i) {
 			if (i >= torrent.pieces.length) return onready();
-			engine.store.read(i, function(_, buf) {
+			engine.store.get(i, function(_, buf) {
 				if (!buf || sha1(buf) !== torrent.pieces[i] || !pieces[i]) return loop(i+1);
 				pieces[i] = null;
 				engine.bitfield.set(i, true);
@@ -701,7 +711,7 @@ var torrentStream = function(link, opts, cb) {
 
 	var removeTmp = function(cb) {
 		if (!usingTmp) return removeTorrent(cb);
-		fs.rmdir(opts.path, function(err) {
+		rimraf(opts.path, function(err) {
 			if (err) return cb(err);
 			removeTorrent(cb);
 		});
@@ -713,9 +723,9 @@ var torrentStream = function(link, opts, cb) {
 			keepPieces = false;
 		}
 
-		if (keepPieces || !engine.store || !engine.store.remove) return removeTmp(cb);
+		if (keepPieces || !engine.store || !engine.store.destroy) return removeTmp(cb);
 
-		engine.store.remove(function(err) {
+		engine.store.destroy(function(err) {
 			if (err) return cb(err);
 			removeTmp(cb);
 		});
@@ -726,7 +736,7 @@ var torrentStream = function(link, opts, cb) {
 		swarm.destroy();
 		clearInterval(rechokeIntervalId);
 		discovery.stop();
-		if (engine.store && engine.store.remove) {
+		if (engine.store && engine.store.close) {
 			engine.store.close(cb);
 		} else if (cb) {
 			process.nextTick(cb);
