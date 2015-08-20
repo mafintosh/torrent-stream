@@ -24,6 +24,7 @@
     "random-access-file": "^0.3.1",
     "rimraf": "^2.2.5",
     "thunky": "^0.1.0",
+    "torrent-discovery": "^3.3.0",
     "torrent-piece": "^1.0.0"
   },
   "devDependencies": {
