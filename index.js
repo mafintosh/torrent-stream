@@ -14,8 +14,8 @@ var piece = require('torrent-piece');
 var rimraf = require('rimraf');
 var FSChunkStore = require('fs-chunk-store');
 var ImmediateChunkStore = require('immediate-chunk-store');
+var peerDiscovery = require('torrent-discovery');
 
-var peerDiscovery = require('./lib/peer-discovery');
 var blocklist = require('ip-set');
 var exchangeMetadata = require('./lib/exchange-metadata');
 var fileStream = require('./lib/file-stream');
@@ -107,7 +107,13 @@ var torrentStream = function(link, opts, cb) {
 	engine._flood = opts.flood;
 	engine._pulse = opts.pulse;
 
-	var discovery = peerDiscovery(opts);
+	var discovery = peerDiscovery({
+		peerId: new Buffer(opts.id),
+		dht: (opts.dht !== undefined) ? opts.dht : true,
+		tracker: (opts.tracker !== undefined) ? opts.tracker : true,
+		port: DEFAULT_PORT,
+		announce: opts.trackers
+	});
 	var blocked = blocklist(opts.blocklist);
 
 	discovery.on('peer', function(addr) {
@@ -143,7 +149,11 @@ var torrentStream = function(link, opts, cb) {
 			return [];
 		});
 
-		discovery.setTorrent(torrent);
+		process.nextTick(function () {
+			// Gives the user a chance to call engine.listen(PORT) on the same tick,
+			// so discovery will start using the correct torrent port.
+			discovery.setTorrent(torrent);
+		});
 
 		engine.files = torrent.files.map(function(file) {
 			file = Object.create(file);
