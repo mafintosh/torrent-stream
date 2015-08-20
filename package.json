@@ -4,7 +4,7 @@
   "description": "Low level streaming torrent client that exposes files as node.js streams and downloads pieces based on demand",
   "repository": "git://github.com/mafintosh/torrent-stream.git",
   "scripts": {
-    "test": "tap test/*.js"
+    "test": "standard && tap test/*.js"
   },
   "dependencies": {
     "bitfield": "^0.1.0",
@@ -28,7 +28,8 @@
     "torrent-piece": "^1.0.0"
   },
   "devDependencies": {
-    "tap": "^0.4.8",
-    "fs-extra": "^0.9.1"
+    "fs-extra": "^0.9.1",
+    "standard": "^5.1.0",
+    "tap": "^0.4.8"
   }
 }
