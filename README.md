@@ -87,6 +87,14 @@ Emitted everytime a piece has been downloaded and verified.
 
 Emitted everytime a piece is uploaded.
 
+#### `engine.on('torrent', fn)`
+
+Emitted when the metadata has been fetched.
+
+#### `engine.on('idle', fn)`
+
+Emitted when all selected files have been completely downloaded.
+
 #### `engine.files[...]`
 
 An array of all files in the torrent. See the file section for more info on what methods the file has
@@ -119,6 +127,10 @@ Listen for incoming peers on the specified port. Port defaults to `6881`
 #### `engine.swarm`
 
 The attached [peer-wire-swarm](https://github.com/mafintosh/peer-wire-swarm) instance
+
+#### `engine.swarm.downloaded`
+
+Shows the total bytes downloaded. With this you can know how much you downloaded and how many bytes you still have to download to reach the end of the file. 
 
 #### `file = engine.files[...]`
 
