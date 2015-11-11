@@ -711,11 +711,12 @@ var torrentStream = function (link, opts, cb) {
   }
 
   var removeTorrent = function (cb) {
+    engine.destroy()
     fs.unlink(torrentPath, function (err) {
-      if (err) return cb(err)
+      if (err && typeof cb === 'function') return cb(err)
       fs.rmdir(path.dirname(torrentPath), function (err) {
-        if (err && err.code !== 'ENOTEMPTY') return cb(err)
-        cb()
+        if (err && err.code !== 'ENOTEMPTY' && typeof cb === 'function') return cb(err)
+        if(typeof cb === 'function') cb()
       })
     })
   }
