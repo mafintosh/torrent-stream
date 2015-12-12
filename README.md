@@ -1,5 +1,7 @@
 # torrent-stream
 
+[![Build Status](https://secure.travis-ci.org/mafintosh/torrent-stream.png)](http://travis-ci.org/mafintosh/torrent-stream) [![Dependency Status](https://david-dm.org/mafintosh/torrent-stream.svg)](https://david-dm.org/mafintosh/torrent-stream) [![devDependency Status](https://david-dm.org/mafintosh/torrent-stream/dev-status.svg)](https://david-dm.org/mafintosh/torrent-stream#info=devDependencies)
+
 The streaming torrent engine that [peerflix](https://github.com/mafintosh/peerflix) uses
 
 	npm install torrent-stream
