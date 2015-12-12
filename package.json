@@ -31,5 +31,6 @@
     "fs-extra": "^0.9.1",
     "standard": "^5.1.0",
     "tap": "^0.4.8"
-  }
+  },
+  "license": "MIT"
 }
