@@ -214,7 +214,13 @@ var torrentStream = function (link, opts, cb) {
         oninterestchange()
       }
 
-      if (!engine.selection.length) engine.emit('idle')
+      if (!engine.selection.length) {
+        engine.emit('idle')
+
+        if (discovery.tracker && discovery.tracker !== true) {
+          discovery.tracker.complete()
+        }
+      }
     }
 
     var onpiececomplete = function (index, buffer) {
