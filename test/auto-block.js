@@ -1,5 +1,5 @@
 var test = require('tap').test
-var torrents = require('../')
+var torrents = require('../lib/torrent-stream')
 var fs = require('fs-extra')
 var path = require('path')
 
