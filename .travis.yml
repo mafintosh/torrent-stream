@@ -6,6 +6,7 @@ before_install:
   - npm install -g npm@2.14.7
 
 node_js:
+  - "6"
   - "5"
   - "4"
   - "3"
