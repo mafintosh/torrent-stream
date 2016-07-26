@@ -214,7 +214,44 @@ var torrentStream = function (link, opts, cb) {
         oninterestchange()
       }
 
-      if (!engine.selection.length) engine.emit('idle')
+      if (!engine.selection.length) {
+        engine.emit('idle')
+
+        // check if all pieces have been downloaded
+        var complete = true
+        var bits = engine.torrent.pieces.length
+        var bytes = bits / 8 | 0
+        var rem = bits % 8
+        var buffer = engine.bitfield.buffer
+
+        for (var i = 0; i < bytes; i++) {
+          if (buffer[i] !== 255) {
+            complete = false // every byte must be full of ones
+            break
+          }
+        }
+
+        if (complete && rem > 0) {
+          var mask = 256 - Math.pow(2, 8 - rem); // the last byte may be not full
+          if (buffer[bytes] !== mask) {
+            complete = false
+          }
+        }
+
+        if (complete) {
+          engine.emit('complete')
+        }
+
+        if (discovery.tracker && discovery.tracker !== true) {
+          if (complete) {
+            // all pieces have been downloaded, send the complete event to the tracker
+            discovery.tracker.complete()
+          } else {
+            // send our stats to the tracker now
+            discovery.tracker.update()
+          }
+        }
+      }
     }
 
     var onpiececomplete = function (index, buffer) {
