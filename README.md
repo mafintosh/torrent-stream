@@ -133,7 +133,8 @@ The attached [peer-wire-swarm](https://github.com/mafintosh/peer-wire-swarm) ins
 
 #### `engine.swarm.downloaded`
 
-Shows the total bytes downloaded. With this you can know how much you downloaded and how many bytes you still have to download to reach the end of the file. 
+Shows the total bytes downloaded. With this you can know how much you downloaded.
+
 #### `engine.swarm.downloadSpeed()`
 
 Shows the download speed in bytes/s
