@@ -123,7 +123,7 @@ var torrentStream = function (link, opts, cb) {
       engine.emit('peer', addr)
       engine.connect(addr)
     }
-  }) 
+  })
 
   String.prototype.replaceAt=function(index, character) {
     return this.substr(0, index) + character + this.substr(index+character.length);
@@ -646,7 +646,7 @@ var torrentStream = function (link, opts, cb) {
         opts.trackers = [].concat(opts.trackers || []).concat(link.announce || [])
       }
 
-      engine.metadata = torrent.infoBuffer          /////////Here
+      engine.metadata = torrent.infoBuffer         
       ontorrent(torrent)
     })
   }
