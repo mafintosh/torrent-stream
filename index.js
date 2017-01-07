@@ -133,7 +133,7 @@ var torrentStream = function (link, opts, cb) {
       var reser=["<",">",":",'"',"/","\\","|","?","*"];
             var s=p.split(path.sep);
             var root=path.parse(p).root;
-            n=[];
+            var n=[];
       for(var i=0;i<s.length;++i){
         var hold=s[i];
           for(var cnt=0;cnt<hold.length && (s[i]+path.sep)!=root;++cnt){
