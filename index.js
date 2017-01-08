@@ -72,7 +72,7 @@ var torrentStream = function (link, opts, cb) {
   if (!opts.path) {
     usingTmp = true
     opts.path = path.join(opts.tmp, opts.name, infoHash)
-  }   
+  }
   var engine = new events.EventEmitter()
   var swarm = pws(infoHash, opts.id, { size: (opts.connections || opts.size), speed: 10 })
   var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent')
@@ -96,7 +96,7 @@ var torrentStream = function (link, opts, cb) {
   engine.infoHash = infoHash
   engine.metadata = metadata
   engine.path = opts.path
-  engine.ex=exchangeMetadata;
+  engine.ex = exchangeMetadata
   engine.files = []
   engine.selection = []
   engine.torrent = null
@@ -125,27 +125,28 @@ var torrentStream = function (link, opts, cb) {
     }
   })
 
-  String.prototype.replaceAt=function(index, character) {
-    return this.substr(0, index) + character + this.substr(index+character.length);
-  }
-    var handleReserved=function(p)
-    {
-      var reser=["<",">",":",'"',"/","\\","|","?","*"];
-            var s=p.split(path.sep);
-            var root=path.parse(p).root;
-            var n=[];
-      for(var i=0;i<s.length;++i){
-        var hold=s[i];
-          for(var cnt=0;cnt<hold.length && (s[i]+path.sep)!=root;++cnt){
-            if(reser.indexOf(hold[cnt])!=-1)
-              hold=hold.replaceAt(cnt,'_');
-      }
-        n.push(hold);
+  var handleReserved = function (p) {
+    this.replaceAt = function (str, index, character) {
+      return str.substr(0, index) + character + str.substr(index + character.length)
     }
-    return n.join(path.sep);
+
+    var reser = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+    var s = p.split(path.sep)
+    var root = path.parse(p).root
+    var n = []
+    for (var i = 0; i < s.length; ++i) {
+      var hold = s[i]
+      for (var cnt = 0; cnt < hold.length && (s[i] + path.sep) !== root; ++cnt) {
+        if (reser.indexOf(hold[cnt]) !== -1) {
+          hold = this.replaceAt(hold, cnt, '_')
+        }
+      }
+      n.push(hold)
+    }
+    return n.join(path.sep)
   }
 
-    var ontorrent = function (torrent) {
+  var ontorrent = function (torrent) {
     var storage = opts.storage || FSChunkStore
 
     engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
@@ -153,7 +154,7 @@ var torrentStream = function (link, opts, cb) {
         return {
           path: handleReserved(path.join(opts.path, file.path)),
           length: file.length,
-          offset: file.offset,
+          offset: file.offset
         }
       })
     }))
@@ -177,7 +178,6 @@ var torrentStream = function (link, opts, cb) {
     })
 
     engine.files = torrent.files.map(function (file) {
-
       file = Object.create(file)
       var offsetPiece = (file.offset / torrent.pieceLength) | 0
       var endPiece = ((file.offset + file.length - 1) / torrent.pieceLength) | 0
@@ -600,7 +600,6 @@ var torrentStream = function (link, opts, cb) {
     loop(0)
   }
 
-
   var exchange = exchangeMetadata(engine, function (metadata) {
     var buf = bncode.encode({
       info: bncode.decode(metadata),
@@ -616,7 +615,7 @@ var torrentStream = function (link, opts, cb) {
       })
     })
   })
-  
+
   swarm.on('wire', function (wire) {
     engine.emit('wire', wire)
     exchange(wire)
@@ -646,7 +645,7 @@ var torrentStream = function (link, opts, cb) {
         opts.trackers = [].concat(opts.trackers || []).concat(link.announce || [])
       }
 
-      engine.metadata = torrent.infoBuffer         
+      engine.metadata = torrent.infoBuffer
       ontorrent(torrent)
     })
   }
