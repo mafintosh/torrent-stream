@@ -96,7 +96,6 @@ var torrentStream = function (link, opts, cb) {
   engine.infoHash = infoHash
   engine.metadata = metadata
   engine.path = opts.path
-  engine.ex = exchangeMetadata
   engine.files = []
   engine.selection = []
   engine.torrent = null
@@ -126,22 +125,22 @@ var torrentStream = function (link, opts, cb) {
   })
 
   var handleReserved = function (p) {
-    this.replaceAt = function (str, index, character) {
-      return str.substr(0, index) + character + str.substr(index + character.length)
-    }
-
-    var reser = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
     var s = p.split(path.sep)
     var root = path.parse(p).root
     var n = []
-    for (var i = 0; i < s.length; ++i) {
-      var hold = s[i]
-      for (var cnt = 0; cnt < hold.length && (s[i] + path.sep) !== root; ++cnt) {
-        if (reser.indexOf(hold[cnt]) !== -1) {
-          hold = this.replaceAt(hold, cnt, '_')
-        }
-      }
-      n.push(hold)
+
+    if (s.length === 0) {
+      return ''
+    }
+
+    var i = 0
+    if (s[0] + path.sep === root) {
+      i = 1
+      n.push(s[0])
+    }
+    while (i < s.length) {
+      n.push(s[i].replace(/[*:/\\"><?|]/g, '_'))
+      ++i
     }
     return n.join(path.sep)
   }
