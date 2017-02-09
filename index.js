@@ -32,7 +32,7 @@ var BAD_PIECE_STRIKES_DURATION = 120000 // 2 minutes
 var RECHOKE_INTERVAL = 10000
 var RECHOKE_OPTIMISTIC_DURATION = 2
 
-var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir()
+var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpdir()
 
 var noop = function () {}
 
