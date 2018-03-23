@@ -2,9 +2,8 @@ sudo: false
 
 language: node_js
 
-before_install:
-  - npm install -g npm@2.14.7
-
 node_js:
   - "node"
-  - "lts/*"
+  - "8"
+  - "6"
+  - "4"
