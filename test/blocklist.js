@@ -50,7 +50,7 @@ test('peer should block the seed via blocklist', function (t) {
   }
 
   peer.once('blocked-peer', function (addr) {
-    t.equal(addr, '127.0.0.1:6882')
+    t.like(addr, /127\.0\.0\.1/)
     blockedPeer = true
     maybeDone()
   })
@@ -75,7 +75,7 @@ test('peer should block the seed via explicit block', function (t) {
   }
 
   peer.once('blocked-peer', function (addr) {
-    t.equal(addr, '127.0.0.1:6882')
+    t.like(addr, /127\.0\.0\.1/)
     blockedPeer = true
     maybeDone()
   })

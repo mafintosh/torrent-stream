@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "buffer-alloc": "^1.1.0",
-    "bittorrent-tracker": "^2.6.0",
+    "bittorrent-tracker": "^7.7.0",
     "fs-extra": "^0.26.4",
     "standard": "^5.1.0",
     "tap": "^0.4.8"
