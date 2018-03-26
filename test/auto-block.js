@@ -2,6 +2,7 @@ var test = require('tap').test
 var torrents = require('../')
 var fs = require('fs-extra')
 var path = require('path')
+var bufferAlloc = require('buffer-alloc')
 
 var torrent = fs.readFileSync(path.join(__dirname, 'data', 'test.torrent'))
 var tmpPath = path.join(__dirname, '..', 'torrents', 'test')
@@ -27,7 +28,7 @@ test('fixture can verify the torrent', function (t) {
 test('peer should be blocked on bad piece', function (t) {
   t.plan(4)
 
-  fixture.store.put(0, new Buffer(1 << 15), function () {
+  fixture.store.put(0, bufferAlloc(1 << 15), function () {
     t.ok(true, 'bad piece should be written')
 
     var engine = torrents(torrent, {

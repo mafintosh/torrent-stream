@@ -15,6 +15,7 @@ var rimraf = require('rimraf')
 var FSChunkStore = require('fs-chunk-store')
 var ImmediateChunkStore = require('immediate-chunk-store')
 var peerDiscovery = require('torrent-discovery')
+var bufferFrom = require('buffer-from')
 
 var blocklist = require('ip-set')
 var exchangeMetadata = require('./lib/exchange-metadata')
@@ -108,7 +109,7 @@ var torrentStream = function (link, opts, cb) {
   engine._pulse = opts.pulse
 
   var discovery = peerDiscovery({
-    peerId: new Buffer(opts.id),
+    peerId: bufferFrom(opts.id),
     dht: (opts.dht !== undefined) ? opts.dht : true,
     tracker: (opts.tracker !== undefined) ? opts.tracker : true,
     port: DEFAULT_PORT,
