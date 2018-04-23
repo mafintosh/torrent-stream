@@ -608,7 +608,9 @@ var torrentStream = function (link, opts, cb) {
 
   if (link.files && engine.metadata) {
     swarm.resume()
-    ontorrent(link)
+    process.nextTick(function () {
+      ontorrent(link)
+    })
   } else {
     fs.readFile(torrentPath, function (_, buf) {
       if (destroyed) return
