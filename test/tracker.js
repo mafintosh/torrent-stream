@@ -87,21 +87,25 @@ test('peer should connect to the swarm using magnet link and trackers', function
 
 test('peer should connect to an alternate tracker', function (t) {
   t.plan(5)
+  var engine = null
   var server = new tracker.Server()
   server.once('listening', function () {
     t.ok(true, 'tracker should be listening')
+
+    engine = torrents(torrent, { dht: false, trackers: ['http://127.0.0.1:54321/announce'] })
+    engine.once('ready', function () {
+      t.ok(true, 'should be ready')
+    })
   })
   server.once('start', function (addr) {
     t.equal(addr, '127.0.0.1:6881')
-  })
-  server.listen(54321)
 
-  var engine = torrents(torrent, { dht: false, trackers: ['http://127.0.0.1:54321/announce'] })
-  engine.once('ready', function () {
-    t.ok(true, 'should be ready')
-    engine.destroy(t.ok.bind(t, true, 'should be destroyed'))
+    engine.destroy(function () {
+      engine.remove(t.ok.bind(t, true, 'should be destroyed'))
+    })
     server.close(t.ok.bind(t, true, 'tracker should be closed'))
   })
+  server.listen(54321)
 })
 
 test('cleanup', function (t) {
