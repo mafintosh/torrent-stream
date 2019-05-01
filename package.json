@@ -20,7 +20,8 @@
     "peer-wire-swarm": "^0.12.0",
     "rimraf": "^2.2.5",
     "torrent-discovery": "^5.2.0",
-    "torrent-piece": "^1.0.0"
+    "torrent-piece": "^1.0.0",
+    "sanitize-filename": "^1.6.1"
   },
   "devDependencies": {
     "buffer-alloc": "^1.1.0",
