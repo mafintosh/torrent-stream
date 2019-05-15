@@ -278,6 +278,10 @@ var torrentStream = function (link, opts, cb) {
     var onrequest = function (wire, index, hotswap) {
       if (!pieces[index]) return false
 
+      if (opts.downloadLimit && swarm.downloadSpeed() > opts.downloadLimit) {
+        return;
+      }
+      
       var p = pieces[index]
       var reservation = p.reserve()
 
