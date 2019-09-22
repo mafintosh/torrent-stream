@@ -108,6 +108,32 @@ test('peer should connect to an alternate tracker', function (t) {
   server.listen(54321)
 })
 
+// This test seems like it might be better contained in basic.js but I am unable
+// to trigger the bug without the addition of the server, so it is much more
+// like tests in tracker.js, so that's where I'm putting it. ¯\_(ツ)_/¯
+test('calling destroy() before \'ready\' should not hold event loop open', function (t) {
+  t.plan(5)
+  var engine = null
+  var server = new tracker.Server()
+  server.once('listening', function () {
+    t.ok(true, 'tracker should be listening')
+
+    engine = torrents(torrent, { dht: false, trackers: ['http://127.0.0.1:54321/announce'] })
+    engine.destroy(function () {
+      engine.remove(t.ok.bind(t, true, 'should be destroyed'))
+    })
+    engine.once('ready', function () {
+      t.ok(true, 'should be ready')
+    })
+  })
+  server.once('start', function (addr) {
+    t.equal(addr, '127.0.0.1:6881')
+
+    server.close(t.ok.bind(t, true, 'tracker should be closed'))
+  })
+  server.listen(54321)
+})
+
 test('cleanup', function (t) {
   t.plan(2)
   fixture.destroy(t.ok.bind(t, true, 'should be destroyed'))
