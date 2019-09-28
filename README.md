@@ -65,6 +65,8 @@ Create a new engine instance. Options can contain the following
 	                      // Defaults to true
 	dht: true,            // Whether or not to use DHT to initialize the swarm.
 	                      // Defaults to true
+	utp: false,           // Whether or not to use UTP connections.
+	                      // Defaults to false
 	tracker: true,        // Whether or not to use trackers from torrent file or magnet link
 	                      // Defaults to true
 	trackers: [
