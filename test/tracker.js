@@ -113,3 +113,23 @@ test('cleanup', function (t) {
   fixture.destroy(t.ok.bind(t, true, 'should be destroyed'))
   server.close(t.ok.bind(t, true, 'tracker should be closed'))
 })
+
+test('calling destroy() before \'ready\' should not hold event loop open', function (t) {
+  t.plan(4)
+  var engine = null
+  var server = new tracker.Server()
+  server.once('listening', function () {
+    t.ok(true, 'tracker should be listening')
+
+    engine = torrents(torrent, { dht: false, trackers: ['http://127.0.0.1:54321/announce'] })
+    engine.destroy(function () {
+      engine.remove(t.ok.bind(t, true, 'should be destroyed'))
+    })
+  })
+  server.once('start', function (addr) {
+    t.equal(addr, '127.0.0.1:6881')
+
+    server.close(t.ok.bind(t, true, 'tracker should be closed'))
+  })
+  server.listen(54321)
+})

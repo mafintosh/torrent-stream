@@ -545,6 +545,7 @@ var torrentStream = function (link, opts, cb) {
     }
 
     var onready = function () {
+      if (destroyed) return
       swarm.on('wire', onwire)
       swarm.wires.forEach(onwire)
 
