@@ -2,7 +2,7 @@ var hat = require('hat')
 var pws = require('peer-wire-swarm')
 var bncode = require('bncode')
 var crypto = require('crypto')
-var bitfield = require('bitfield')
+var Bitfield = require('bitfield')
 var parseTorrent = require('parse-torrent')
 var mkdirp = require('mkdirp')
 var events = require('events')
@@ -10,11 +10,11 @@ var path = require('path')
 var fs = require('fs')
 var os = require('os')
 var eos = require('end-of-stream')
-var piece = require('torrent-piece')
+var Piece = require('torrent-piece')
 var rimraf = require('rimraf')
 var FSChunkStore = require('fs-chunk-store')
 var ImmediateChunkStore = require('immediate-chunk-store')
-var peerDiscovery = require('torrent-discovery')
+var PeerDiscovery = require('torrent-discovery')
 var bufferFrom = require('buffer-from')
 
 var blocklist = require('ip-set')
@@ -24,7 +24,7 @@ var fileStream = require('./lib/file-stream')
 var MAX_REQUESTS = 5
 var CHOKE_TIMEOUT = 5000
 var REQUEST_TIMEOUT = 30000
-var SPEED_THRESHOLD = 3 * piece.BLOCK_LENGTH
+var SPEED_THRESHOLD = 3 * Piece.BLOCK_LENGTH
 var DEFAULT_PORT = 6881
 
 var BAD_PIECE_STRIKES_MAX = 3
@@ -33,7 +33,7 @@ var BAD_PIECE_STRIKES_DURATION = 120000 // 2 minutes
 var RECHOKE_INTERVAL = 10000
 var RECHOKE_OPTIMISTIC_DURATION = 2
 
-var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpDir()
+var TMP = fs.existsSync('/tmp') ? '/tmp' : os.tmpdir()
 
 var noop = function () {}
 
@@ -108,27 +108,39 @@ var torrentStream = function (link, opts, cb) {
   engine._flood = opts.flood
   engine._pulse = opts.pulse
 
-  var discovery = peerDiscovery({
-    peerId: bufferFrom(opts.id),
-    dht: (opts.dht !== undefined) ? opts.dht : true,
-    tracker: (opts.tracker !== undefined) ? opts.tracker : true,
-    port: DEFAULT_PORT,
-    announce: opts.trackers
-  })
+  var discovery = null
+
   var blocked = blocklist(opts.blocklist)
 
-  discovery.on('peer', function (addr) {
-    if (blocked.contains(addr.split(':')[0])) {
-      engine.emit('blocked-peer', addr)
-    } else {
-      engine.emit('peer', addr)
-      engine.connect(addr)
-    }
+  var startDiscovery = function () {
+    discovery = new PeerDiscovery({
+      infoHash: engine.infoHash,
+      peerId: bufferFrom(opts.id),
+      dht: (opts.dht !== undefined) ? opts.dht : true,
+      tracker: (opts.tracker !== undefined) ? opts.tracker : true,
+      port: engine.port || DEFAULT_PORT,
+      announce: opts.trackers || link.announce
+    })
+
+    discovery.on('peer', function (addr) {
+      if (blocked.contains(addr.split(':')[0])) {
+        engine.emit('blocked-peer', addr)
+      } else {
+        engine.emit('peer', addr)
+        engine.connect(addr)
+      }
+    })
+  }
+
+  process.nextTick(function () {
+    // Gives the user a chance to call engine.listen(PORT) on the same tick,
+    // so discovery will start using the correct torrent port.
+    startDiscovery()
   })
 
   var ontorrent = function (torrent) {
     var storage = opts.storage || FSChunkStore
-    engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
+    engine.store = new ImmediateChunkStore(storage(torrent.pieceLength, {
       files: torrent.files.map(function (file) {
         return {
           path: path.join(opts.path, file.path),
@@ -138,22 +150,16 @@ var torrentStream = function (link, opts, cb) {
       })
     }))
     engine.torrent = torrent
-    engine.bitfield = bitfield(torrent.pieces.length)
+    engine.bitfield = new Bitfield(torrent.pieces.length)
 
     var pieceLength = torrent.pieceLength
     var pieceRemainder = (torrent.length % pieceLength) || pieceLength
 
     var pieces = torrent.pieces.map(function (hash, i) {
-      return piece(i === torrent.pieces.length - 1 ? pieceRemainder : pieceLength)
+      return new Piece(i === torrent.pieces.length - 1 ? pieceRemainder : pieceLength)
     })
     var reservations = torrent.pieces.map(function () {
       return []
-    })
-
-    process.nextTick(function () {
-      // Gives the user a chance to call engine.listen(PORT) on the same tick,
-      // so discovery will start using the correct torrent port.
-      discovery.setTorrent(torrent)
     })
 
     engine.files = torrent.files.map(function (file) {
@@ -236,7 +242,7 @@ var torrentStream = function (link, opts, cb) {
 
     var onhotswap = opts.hotswap === false ? falsy : function (wire, index) {
       var speed = wire.downloadSpeed()
-      if (speed < piece.BLOCK_LENGTH) return
+      if (speed < Piece.BLOCK_LENGTH) return
       if (!reservations[index] || !pieces[index]) return
 
       var r = reservations[index]
@@ -264,7 +270,7 @@ var torrentStream = function (link, opts, cb) {
       for (i = 0; i < min.requests.length; i++) {
         var req = min.requests[i]
         if (req.piece !== index) continue
-        pieces[index].cancel((req.offset / piece.BLOCK_SIZE) | 0)
+        pieces[index].cancel((req.offset / Piece.BLOCK_SIZE) | 0)
       }
 
       engine.emit('hotswap', min, wire, index)
@@ -309,7 +315,7 @@ var torrentStream = function (link, opts, cb) {
         var buffer = p.flush()
 
         if (sha1(buffer) !== torrent.pieces[index]) {
-          pieces[index] = piece(p.length)
+          pieces[index] = new Piece(p.length)
           engine.emit('invalid-piece', index, buffer)
           onupdatetick()
 
@@ -353,7 +359,7 @@ var torrentStream = function (link, opts, cb) {
       var speed = wire.downloadSpeed() || 1
       if (speed > SPEED_THRESHOLD) return thruthy
 
-      var secs = MAX_REQUESTS * piece.BLOCK_LENGTH / speed
+      var secs = MAX_REQUESTS * Piece.BLOCK_LENGTH / speed
       var tries = 10
       var ptr = 0
 
@@ -614,14 +620,12 @@ var torrentStream = function (link, opts, cb) {
       if (destroyed) return
       swarm.resume()
 
-      // We know only infoHash here, not full infoDictionary.
-      // But infoHash is enough to connect to trackers and get peers.
-      if (!buf) return discovery.setTorrent(link)
+      if (!buf) return
 
       var torrent = parseTorrent(buf)
 
       // Bad cache file - fetch it again
-      if (torrent.infoHash !== infoHash) return discovery.setTorrent(link)
+      if (torrent.infoHash !== infoHash) return
 
       if (!torrent.announce || !torrent.announce.length) {
         opts.trackers = [].concat(opts.trackers || []).concat(link.announce || [])
@@ -751,7 +755,7 @@ var torrentStream = function (link, opts, cb) {
     destroyed = true
     swarm.destroy()
     clearInterval(rechokeIntervalId)
-    discovery.stop()
+    if (discovery) discovery.destroy()
     if (engine.store && engine.store.close) {
       engine.store.close(cb)
     } else if (cb) {
@@ -780,7 +784,6 @@ var torrentStream = function (link, opts, cb) {
     if (!port) return findPort(opts.port || DEFAULT_PORT, cb)
     engine.port = port
     swarm.listen(engine.port, cb)
-    discovery.updatePort(engine.port)
   }
 
   return engine
