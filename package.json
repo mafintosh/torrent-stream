@@ -4,29 +4,29 @@
   "description": "Low level streaming torrent client that exposes files as node.js streams and downloads pieces based on demand",
   "repository": "git://github.com/mafintosh/torrent-stream.git",
   "scripts": {
-    "test": "standard && tap test/*.js"
+    "test": "standard && tap --no-coverage --jobs=1 test/*.js"
   },
   "dependencies": {
-    "bitfield": "^0.1.0",
-    "bncode": "^0.5.2",
-    "buffer-from": "^1.0.0",
-    "end-of-stream": "^0.1.4",
-    "fs-chunk-store": "^1.3.0",
+    "bitfield": "^3.0.0",
+    "bncode": "^0.5.3",
+    "buffer-from": "^1.1.1",
+    "end-of-stream": "^1.4.4",
+    "fs-chunk-store": "^2.0.1",
     "hat": "0.0.3",
-    "immediate-chunk-store": "^1.0.5",
-    "ip-set": "^1.0.0",
-    "mkdirp": "^0.3.5",
-    "parse-torrent": "^4.0.0",
-    "peer-wire-swarm": "^0.12.0",
-    "rimraf": "^2.2.5",
-    "torrent-discovery": "^5.2.0",
-    "torrent-piece": "^1.0.0"
+    "immediate-chunk-store": "^2.1.0",
+    "ip-set": "^1.0.2",
+    "mkdirp": "^0.5.1",
+    "parse-torrent": "^7.0.1",
+    "peer-wire-swarm": "^0.12.2",
+    "rimraf": "^3.0.0",
+    "torrent-discovery": "^9.2.1",
+    "torrent-piece": "^2.0.0"
   },
   "devDependencies": {
-    "buffer-alloc": "^1.1.0",
-    "bittorrent-tracker": "^7.7.0",
-    "fs-extra": "^0.26.4",
-    "standard": "^5.1.0",
-    "tap": "^0.4.8"
+    "buffer-alloc": "^1.2.0",
+    "bittorrent-tracker": "^9.14.4",
+    "fs-extra": "^8.1.0",
+    "standard": "^14.3.1",
+    "tap": "^14.10.5"
   }
 }

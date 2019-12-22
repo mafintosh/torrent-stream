@@ -25,7 +25,7 @@ test('fixture should be ready', function (t) {
 })
 
 test('torrent should be emitted', function (t) {
-  t.plan(1)
+  t.plan(2)
   var e = engine()
   e.on('torrent', function (torrent) {
     t.equal(torrent.infoHash, 'ef330b39f4801d25b4245212e75a38634bfc856e')

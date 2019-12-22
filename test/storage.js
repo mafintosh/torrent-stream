@@ -15,7 +15,7 @@ test('fixture can verify the torrent', function (t) {
   t.plan(2)
   fixture.once('ready', function () {
     t.ok(true, 'should be ready')
-    t.deepEqual(fixture.bitfield.buffer.toString('hex'), 'c0', 'should verify all the pieces')
+    t.deepEqual(fixture.bitfield.buffer[0], 192, 'should verify all the pieces')
   })
 })
 
@@ -31,7 +31,7 @@ test('fixture can read the file contents', function (t) {
     })
   })
   t.test('can read from stream with offset', function (t) {
-    var stream = file.createReadStream({start: 36109})
+    var stream = file.createReadStream({ start: 36109 })
     stream.setEncoding('ascii')
     t.plan(1)
     stream.once('readable', function () {
@@ -55,15 +55,15 @@ test('fixture can read the file contents', function (t) {
   })
   t.test('can read from storage with offset', function (t) {
     t.plan(6)
-    fixture.store.get(0, {length: 11}, function (_, buffer) {
+    fixture.store.get(0, { length: 11 }, function (_, buffer) {
       t.equal(buffer.length, 11)
       t.equal(buffer.toString('ascii'), 'Lorem ipsum')
     })
-    fixture.store.get(0, {offset: 588, length: 10}, function (_, buffer) {
+    fixture.store.get(0, { offset: 588, length: 10 }, function (_, buffer) {
       t.equal(buffer.length, 10)
       t.equal(buffer.toString('ascii'), 'Vestibulum')
     })
-    fixture.store.get(1, {offset: 3341}, function (_, buffer) {
+    fixture.store.get(1, { offset: 3341 }, function (_, buffer) {
       t.equal(buffer.length, 6)
       t.equal(buffer.toString('ascii'), 'amet. ')
     })

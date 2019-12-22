@@ -21,7 +21,7 @@ test('fixture can verify the torrent', function (t) {
   t.plan(2)
   fixture.on('ready', function () {
     t.ok(true, 'seed should be ready')
-    t.deepEqual(fixture.bitfield.buffer.toString('hex'), 'c0', 'should verify all the pieces')
+    t.deepEqual(fixture.bitfield.buffer[0], 192, 'should verify all the pieces')
   })
 })
 
