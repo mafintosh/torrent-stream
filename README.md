@@ -84,11 +84,11 @@ The files array will be empty until this event is emitted
 
 #### `engine.on('download', [piece-index])`
 
-Emitted everytime a piece has been downloaded and verified.
+Emitted every time a piece has been downloaded and verified.
 
 #### `engine.on('upload', [piece-index, offset, length])`
 
-Emitted everytime a piece is uploaded.
+Emitted every time a piece is uploaded.
 
 #### `engine.on('torrent', fn)`
 
