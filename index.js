@@ -16,6 +16,7 @@ var FSChunkStore = require('fs-chunk-store')
 var ImmediateChunkStore = require('immediate-chunk-store')
 var peerDiscovery = require('torrent-discovery')
 var bufferFrom = require('buffer-from')
+var sanitize = require('sanitize-filename')
 
 var blocklist = require('ip-set')
 var exchangeMetadata = require('./lib/exchange-metadata')
@@ -131,7 +132,7 @@ var torrentStream = function (link, opts, cb) {
     engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
       files: torrent.files.map(function (file) {
         return {
-          path: path.join(opts.path, file.path),
+          path: path.join(opts.path, sanitize(file.path)),
           length: file.length,
           offset: file.offset
         }
