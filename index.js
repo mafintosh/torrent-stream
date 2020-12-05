@@ -74,7 +74,6 @@ var torrentStream = function (link, opts, cb) {
     usingTmp = true
     opts.path = path.join(opts.tmp, opts.name, infoHash)
   }
-
   var engine = new events.EventEmitter()
   var swarm = pws(infoHash, opts.id, { size: (opts.connections || opts.size), speed: 10 })
   var torrentPath = path.join(opts.tmp, opts.name, infoHash + '.torrent')
@@ -126,12 +125,34 @@ var torrentStream = function (link, opts, cb) {
     }
   })
 
+  var handleReserved = function (p) {
+    var s = p.split(path.sep)
+    var root = path.parse(p).root
+    var n = []
+
+    if (s.length === 0) {
+      return ''
+    }
+
+    var i = 0
+    if (s[0] + path.sep === root) {
+      i = 1
+      n.push(s[0])
+    }
+    while (i < s.length) {
+      n.push(s[i].replace(/[*:/\\"><?|]/g, '_'))
+      ++i
+    }
+    return n.join(path.sep)
+  }
+
   var ontorrent = function (torrent) {
     var storage = opts.storage || FSChunkStore
+
     engine.store = ImmediateChunkStore(storage(torrent.pieceLength, {
       files: torrent.files.map(function (file) {
         return {
-          path: path.join(opts.path, file.path),
+          path: handleReserved(path.join(opts.path, file.path)),
           length: file.length,
           offset: file.offset
         }
@@ -171,7 +192,6 @@ var torrentStream = function (link, opts, cb) {
 
       file.createReadStream = function (opts) {
         var stream = fileStream(engine, file, opts)
-
         var notify = stream.notify.bind(stream)
         engine.select(stream.startPiece, stream.endPiece, true, notify)
         eos(stream, function () {
@@ -631,7 +651,6 @@ var torrentStream = function (link, opts, cb) {
       ontorrent(torrent)
     })
   }
-
   engine.critical = function (piece, width) {
     for (var i = 0; i < (width || 1); i++) critical[piece + i] = true
   }
