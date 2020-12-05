@@ -60,7 +60,7 @@ var torrentStream = function (link, opts, cb) {
   var metadata = link.infoBuffer || null
   var infoHash = link.infoHash
 
-  if (!opts) opts = {}
+  opts = Object.assign({}, opts)
   if (!opts.id) opts.id = '-TS0008-' + hat(48)
   if (!opts.tmp) opts.tmp = TMP
   if (!opts.name) opts.name = 'torrent-stream'
